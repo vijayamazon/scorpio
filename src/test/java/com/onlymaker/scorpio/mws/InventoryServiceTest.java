@@ -53,7 +53,7 @@ public class InventoryServiceTest {
 
     private void printStock(List<InventorySupply> list) {
         list.forEach(i -> {
-            System.out.println(String.format("asin: %s, sku: %s, quantity:", i.getASIN(), i.getSellerSKU()));
+            System.out.println(String.format("asin: %s, fnSku: %s, sku: %s, quantity:", i.getASIN(), i.getFNSKU(), i.getSellerSKU()));
             System.out.println(String.format("    totalSupply %d, inStockSupply %d", i.getTotalSupplyQuantity(), i.getInStockSupplyQuantity()));
         });
     }

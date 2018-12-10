@@ -13,7 +13,7 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import static com.amazonservices.mws.FulfillmentInventory._2010_10_01.samples.ListInventorySupplySample.invokeListInventorySupply;
 
 /**
- * @see <a href="https://docs.developer.amazonservices.com/en_US/fba_inventory/FBAInventory_ListInventorySupply.html>FBAInventory_ListInventorySupply.html</a>
+ * @see <a href="https://docs.developer.amazonservices.com/en_US/fba_inventory/FBAInventory_ListInventorySupply.html">FBAInventory_ListInventorySupply.html</a>
  * maximum request quota of 30
  * two requests every second
  */
