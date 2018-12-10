@@ -25,7 +25,7 @@ public class ReportServiceTest {
 
     @Test
     public void requestReport() throws MarketplaceWebServiceException {
-        ReportRequestInfo info = reportService.requestReport().getRequestReportResult().getReportRequestInfo();
+        ReportRequestInfo info = reportService.requestReport(ReportService.REPORT_TYPE.get("order")).getRequestReportResult().getReportRequestInfo();
         System.out.println("submit:" + info.getSubmittedDate());
         System.out.println("requestId:" + info.getReportRequestId());
         System.out.println("requestType:" + info.getReportType());
@@ -35,7 +35,7 @@ public class ReportServiceTest {
 
     @Test
     public void reportList() throws MarketplaceWebServiceException, InterruptedException {
-        GetReportListResponse response = reportService.getReportList();
+        GetReportListResponse response = reportService.getReportList(ReportService.REPORT_TYPE.get("order"));
         GetReportListResult result = response.getGetReportListResult();
         printReportInfo(result.getReportInfoList());
         String nextToken = result.getNextToken();
@@ -51,7 +51,7 @@ public class ReportServiceTest {
 
     @Test
     public void getReport() throws MarketplaceWebServiceException, IOException {
-        String id = "12289202597017856";
+        String id = "12104113200017844";
         File report = new File("/tmp/report");
         GetReportRequest request = reportService.prepareGetReport(id, new FileOutputStream(report));
         GetReportResponse response = reportService.getReport(request);
