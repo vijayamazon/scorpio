@@ -1,5 +1,11 @@
 version: ${VERSION}
 
+spring.datasource:
+  url: jdbc:mysql://127.0.0.1:3306/scorpio?useSSL=false
+  username: root
+  password: root
+  initialization-mode: never
+
 logging:
   path: ${projectDir}/logs
   level:
