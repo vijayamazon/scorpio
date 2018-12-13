@@ -62,7 +62,6 @@ create table amazon_entry_snapshot
   sku             varchar(50) not null,
   variable        int unsigned not null default 0,
   rank_best       int unsigned not null default 0,
-  rank_data       json,
   review_count    int unsigned not null default 0,
   star_1          int unsigned not null default 0,
   star_2          int unsigned not null default 0,

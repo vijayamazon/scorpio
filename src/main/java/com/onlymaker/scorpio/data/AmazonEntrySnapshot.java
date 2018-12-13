@@ -29,9 +29,6 @@ public class AmazonEntrySnapshot {
     @Column(name = "rank_best")
     private Integer rankBest;
 
-    @Column(name = "rank_data")
-    private String rankData;
-
     @Column(name = "review_count")
     private Integer reviewCount;
 
@@ -107,14 +104,6 @@ public class AmazonEntrySnapshot {
 
     public void setRankBest(Integer rankBest) {
         this.rankBest = rankBest;
-    }
-
-    public String getRankData() {
-        return rankData;
-    }
-
-    public void setRankData(String rankData) {
-        this.rankData = rankData;
     }
 
     public Integer getReviewCount() {
