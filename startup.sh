@@ -1,7 +1,5 @@
 #!/bin/sh
 set -x
-gradle clean
-gradle bootJar
-cd build/libs
-jar=`ls *.jar`
-java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -jar ${jar}
+jar=`ls /root/*.jar`
+export LOGGING_PATH=/root/logs
+java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -jar ${jar} $1
