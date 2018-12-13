@@ -30,7 +30,7 @@ public class OrderServiceTest {
 
     @Test
     public void listOrders() {
-        ListOrdersResult result = orderService.getListOrdersResponse().getListOrdersResult();
+        ListOrdersResult result = orderService.getListOrdersResponseByCreateTimeLastDay().getListOrdersResult();
         result.getOrders().forEach(this::handle);
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {

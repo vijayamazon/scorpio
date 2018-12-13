@@ -4,11 +4,10 @@ import com.amazonservices.mws.FulfillmentInventory._2010_10_01.FBAInventoryServi
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.FBAInventoryServiceMWSClient;
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.FBAInventoryServiceMWSConfig;
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
-import com.amazonservices.mws.client.MwsUtl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.xml.datatype.XMLGregorianCalendar;
+import java.time.LocalDate;
 
 import static com.amazonservices.mws.FulfillmentInventory._2010_10_01.samples.ListInventorySupplySample.invokeListInventorySupply;
 
@@ -63,15 +62,8 @@ public class InventoryService {
         request.setMWSAuthToken(configuration.getAuthToken());
         request.setMarketplace(configuration.getMarketplace());
         request.setMarketplaceId(configuration.getMarketplaceId());
-        XMLGregorianCalendar queryStartDateTime = MwsUtl.getDTF().newXMLGregorianCalendar();
-        queryStartDateTime.setYear(configuration.getInventoryQueryStartYear());
-        queryStartDateTime.setMonth(configuration.getInventoryQueryStartMonth());
-        queryStartDateTime.setDay(configuration.getInventoryQueryStartDay());
-        queryStartDateTime.setHour(0);
-        queryStartDateTime.setMinute(0);
-        queryStartDateTime.setSecond(0);
-        queryStartDateTime.setMillisecond(0);
-        request.setQueryStartDateTime(queryStartDateTime);
+        LocalDate date = LocalDate.now();
+        request.setQueryStartDateTime(Utils.getXMLGregorianCalendar(date.minusDays(1)));
         return request;
     }
 

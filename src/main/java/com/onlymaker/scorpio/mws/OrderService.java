@@ -1,16 +1,13 @@
 package com.onlymaker.scorpio.mws;
 
-import com.amazonservices.mws.client.MwsUtl;
 import com.amazonservices.mws.orders._2013_09_01.MarketplaceWebServiceOrdersAsyncClient;
 import com.amazonservices.mws.orders._2013_09_01.MarketplaceWebServiceOrdersConfig;
 import com.amazonservices.mws.orders._2013_09_01.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.xml.datatype.XMLGregorianCalendar;
 import java.time.LocalDate;
 import java.util.Collections;
-import java.util.concurrent.ExecutorService;
 
 @Service
 public class OrderService {
@@ -18,14 +15,20 @@ public class OrderService {
     @Autowired
     Configuration configuration;
 
-    public ListOrdersResponse getListOrdersResponse() {
+    public ListOrdersResponse getListOrdersResponseByCreateTimeLastDay() {
         ListOrdersRequest request = new ListOrdersRequest();
-        request.setSellerId(configuration.getSellerId());
-        request.setMarketplaceId(Collections.singletonList(configuration.getMarketplaceId()));
         LocalDate date = LocalDate.now();
-        request.setCreatedAfter(getXMLGregorianCalendar(date.minusDays(2)));
-        request.setCreatedBefore(getXMLGregorianCalendar(date.minusDays(1)));
-        return getClient().listOrders(request);
+        request.setCreatedAfter(Utils.getXMLGregorianCalendar(date.minusDays(1)));
+        request.setCreatedBefore(Utils.getXMLGregorianCalendar(date));
+        return getListOrdersResponse(request);
+    }
+
+    public ListOrdersResponse getListOrdersResponseByUpdateTimeLast30Days() {
+        ListOrdersRequest request = new ListOrdersRequest();
+        LocalDate date = LocalDate.now();
+        request.setLastUpdatedAfter(Utils.getXMLGregorianCalendar(date.minusDays(30)));
+        request.setLastUpdatedBefore(Utils.getXMLGregorianCalendar(date));
+        return getListOrdersResponse(request);
     }
 
     public ListOrdersByNextTokenResponse getListOrdersByNextTokenResponse(String nextToken) {
@@ -52,15 +55,10 @@ public class OrderService {
         return getClient().listOrderItemsByNextToken(request);
     }
 
-    private XMLGregorianCalendar getXMLGregorianCalendar(LocalDate date) {
-        XMLGregorianCalendar result = MwsUtl.getDTF().newXMLGregorianCalendar();
-        result.setYear(date.getYear());
-        result.setMonth(date.getMonthValue());
-        result.setDay(date.getDayOfMonth());
-        result.setHour(0);
-        result.setMinute(0);
-        result.setSecond(0);
-        return result;
+    private ListOrdersResponse getListOrdersResponse(ListOrdersRequest request) {
+        request.setSellerId(configuration.getSellerId());
+        request.setMarketplaceId(Collections.singletonList(configuration.getMarketplaceId()));
+        return getClient().listOrders(request);
     }
 
     private synchronized MarketplaceWebServiceOrdersAsyncClient getClient() {

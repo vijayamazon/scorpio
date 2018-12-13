@@ -15,9 +15,6 @@ public class Configuration {
     private String accessKey;
     private String secretKey;
     private String authToken;
-    private int inventoryQueryStartYear;
-    private int inventoryQueryStartMonth;
-    private int inventoryQueryStartDay;
 
     public String getAppName() {
         return appName;
@@ -89,29 +86,5 @@ public class Configuration {
 
     public void setAuthToken(String authToken) {
         this.authToken = authToken;
-    }
-
-    public int getInventoryQueryStartYear() {
-        return inventoryQueryStartYear;
-    }
-
-    public void setInventoryQueryStartYear(int inventoryQueryStartYear) {
-        this.inventoryQueryStartYear = inventoryQueryStartYear;
-    }
-
-    public int getInventoryQueryStartMonth() {
-        return inventoryQueryStartMonth;
-    }
-
-    public void setInventoryQueryStartMonth(int inventoryQueryStartMonth) {
-        this.inventoryQueryStartMonth = inventoryQueryStartMonth;
-    }
-
-    public int getInventoryQueryStartDay() {
-        return inventoryQueryStartDay;
-    }
-
-    public void setInventoryQueryStartDay(int inventoryQueryStartDay) {
-        this.inventoryQueryStartDay = inventoryQueryStartDay;
     }
 }
