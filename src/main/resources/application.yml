@@ -6,6 +6,8 @@ spring.datasource:
   password: root
   initialization-mode: never
 
+spring.jpa.show-sql: true
+
 logging:
   path: ${projectDir}/logs
   level:
