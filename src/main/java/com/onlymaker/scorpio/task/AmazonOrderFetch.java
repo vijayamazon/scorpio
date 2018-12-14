@@ -23,10 +23,10 @@ import java.util.function.Consumer;
 @Service
 @ConditionalOnProperty(prefix = "mws", name = "mode", havingValue = "satellite")
 public class AmazonOrderFetch {
-    private final static Logger LOGGER = LoggerFactory.getLogger(AmazonOrderFetch.class);
-    private final static int LIST_ORDER_INTERVAL_IN_MINUTES = 1;
-    private final static int LIST_ORDER_ITEM_INTERVAL_IN_SECONDS = 10;
-    private final static ObjectMapper MAPPER = new ObjectMapper();
+    private static final Logger LOGGER = LoggerFactory.getLogger(AmazonOrderFetch.class);
+    private static final int LIST_ORDER_INTERVAL_IN_MINUTES = 1;
+    private static final int LIST_ORDER_ITEM_INTERVAL_IN_SECONDS = 10;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     @Autowired
     Configuration configuration;
     @Autowired

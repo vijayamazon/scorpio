@@ -18,8 +18,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class HtmlPageService {
-    private final static Logger LOGGER = LoggerFactory.getLogger(HtmlPageService.class);
-    private final static String CHROME_UA = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36";
+    private static final Logger LOGGER = LoggerFactory.getLogger(HtmlPageService.class);
+    private static final String CHROME_UA = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36";
 
     public AmazonEntrySnapshot parse(AmazonEntry entry) {
         AmazonEntrySnapshot snapshot = new AmazonEntrySnapshot();

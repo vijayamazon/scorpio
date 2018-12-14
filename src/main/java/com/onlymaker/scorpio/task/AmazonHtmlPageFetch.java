@@ -18,10 +18,10 @@ import java.util.concurrent.TimeUnit;
 @Service
 @ConditionalOnProperty(prefix = "mws", name = "mode", havingValue = "central")
 public class AmazonHtmlPageFetch {
-    private final static Logger LOGGER = LoggerFactory.getLogger(AmazonHtmlPageFetch.class);
-    private final static long INIT_DELAY = 60000;
-    private final static long FIX_DELAY = 8 * 3600000;
-    private final static int FETCH_INTERVAL = 1;
+    private static final Logger LOGGER = LoggerFactory.getLogger(AmazonHtmlPageFetch.class);
+    private static final long INIT_DELAY = 60000;
+    private static final long FIX_DELAY = 8 * 3600000;
+    private static final int FETCH_INTERVAL = 1;
     @Autowired
     HtmlPageService htmlPageService;
     @Autowired

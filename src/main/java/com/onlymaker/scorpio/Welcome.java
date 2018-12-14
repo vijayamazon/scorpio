@@ -1,6 +1,8 @@
 package com.onlymaker.scorpio;
 
 import com.onlymaker.scorpio.mws.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class Welcome implements ApplicationRunner {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Welcome.class);
     @Value("${mws.mode}")
     String mode;
     @Autowired
@@ -16,7 +19,7 @@ public class Welcome implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        System.out.println("========== WELCOME ==========");
-        System.out.println(String.format("%s %s startup in mode %s", configuration.getAppName(), configuration.getAppVersion(), mode));
+        LOGGER.info("========== WELCOME ==========");
+        LOGGER.info("{} {} starting ... mode {}", configuration.getAppName(), configuration.getAppVersion(), mode);
     }
 }

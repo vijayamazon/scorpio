@@ -11,8 +11,8 @@ import java.util.Objects;
 @Entity
 @Table(name = "amazon_order")
 public class AmazonOrder {
-    private final static String FBA = "AFN";
-    private final static String MFN = "MFN";
+    private static final String FBA = "AFN";
+    private static final String MFN = "MFN";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
