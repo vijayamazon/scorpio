@@ -35,7 +35,7 @@ public class AmazonHtmlPageFetch {
         String lastAsin = "";
         for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByAsin(AmazonEntry.STATUS_ENABLED)) {
             try {
-                if (Objects.equals(lastAsin, entry.getAsin())) {
+                if (!Objects.equals(lastAsin, entry.getAsin())) {
                     AmazonEntrySnapshot snapshot = htmlPageService.parse(entry);
                     amazonEntrySnapshotRepository.save(snapshot);
                     lastAsin = entry.getAsin();
