@@ -1,6 +1,7 @@
 package com.onlymaker.scorpio.mws;
 
 import com.onlymaker.scorpio.Main;
+import com.onlymaker.scorpio.data.AmazonEntry;
 import com.onlymaker.scorpio.data.AmazonEntryRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,6 +19,6 @@ public class HtmlPageServiceTest {
 
     @Test
     public void fetch() {
-        amazonEntryRepository.findAll().forEach(htmlPageService::parse);
+        amazonEntryRepository.findAllByStatusOrderByAsin(AmazonEntry.STATUS_ENABLED).forEach(htmlPageService::parse);
     }
 }

@@ -6,6 +6,8 @@ import java.sql.Timestamp;
 @Entity
 @Table(name = "amazon_entry")
 public class AmazonEntry {
+    public final static int STATUS_ENABLED = 1;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true, nullable = false)
