@@ -52,7 +52,7 @@ public class HtmlPageService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return null;
+        return snapshot;
     }
 
     private int getStarByRate(Elements elements, int rate) {
