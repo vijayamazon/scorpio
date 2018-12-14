@@ -63,6 +63,7 @@ create table amazon_entry_snapshot
   variable        int unsigned not null default 0,
   rank_best       int unsigned not null default 0,
   review_count    int unsigned not null default 0,
+  star_average    float(3,2) not null default 0,
   star_1          int unsigned not null default 0,
   star_2          int unsigned not null default 0,
   star_3          int unsigned not null default 0,

@@ -38,6 +38,9 @@ public class HtmlPageService {
             String review = document.select("[data-hook=total-review-count]").text();
             LOGGER.info("review: {}", review);
             snapshot.setReviewCount(matchReviewCount(review));
+            String average = document.select("[data-hook=rating-out-of-text]").text();
+            LOGGER.info("average: {}", average);
+            snapshot.setStarAverage(matchStarAverage(average));
             Elements star = document.select(".a-meter");
             LOGGER.info("star: {}", star);
             snapshot.setStar5(getStarByRate(star, 5));
@@ -85,5 +88,14 @@ public class HtmlPageService {
             return Integer.valueOf(rc);
         }
         return 0;
+    }
+
+    private float matchStarAverage(String review) {
+        Matcher matcher = Pattern.compile("(\\d+(\\.?\\d*)*\\s)").matcher(review);
+        if (matcher.find()) {
+            String as = review.substring(matcher.start(), matcher.end()).trim();
+            return Float.parseFloat(as);
+        }
+        return 0f;
     }
 }

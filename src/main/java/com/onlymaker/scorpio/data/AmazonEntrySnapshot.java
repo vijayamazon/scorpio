@@ -32,6 +32,9 @@ public class AmazonEntrySnapshot {
     @Column(name = "review_count")
     private Integer reviewCount;
 
+    @Column(name = "star_average")
+    private Float starAverage;
+
     @Column(name = "star_1")
     private Integer star1;
 
@@ -112,6 +115,14 @@ public class AmazonEntrySnapshot {
 
     public void setReviewCount(Integer reviewCount) {
         this.reviewCount = reviewCount;
+    }
+
+    public Float getStarAverage() {
+        return starAverage;
+    }
+
+    public void setStarAverage(Float starAverage) {
+        this.starAverage = starAverage;
     }
 
     public Integer getStar1() {
