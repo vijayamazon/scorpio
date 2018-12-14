@@ -27,3 +27,5 @@ management:
   info.git.mode: full
   endpoints.web.exposure.include: env,health,httptrace,info,logfile,loggers,sessions
   metrics.export.prometheus.step: 10m
+
+mws.mode: central
