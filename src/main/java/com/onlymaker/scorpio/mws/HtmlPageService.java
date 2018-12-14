@@ -93,6 +93,7 @@ public class HtmlPageService {
     }
 
     private float matchStarAverage(String review) {
+        review = review.replace(",", ".");
         Matcher matcher = Pattern.compile("(\\d+(\\.?\\d*)*\\s)").matcher(review);
         if (matcher.find()) {
             String as = review.substring(matcher.start(), matcher.end()).trim();
