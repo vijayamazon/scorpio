@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,7 +35,7 @@ public class HtmlPageService {
             Document document = connection.validateTLSCertificates(false).userAgent(chromeUserAgent).get();
             String rank = document.select("#SalesRank").text();
             LOGGER.info("rank: {}", rank);
-            snapshot.setRankBest(matchRankBest(rank));
+            snapshot.setRankBest(matchRankBest(rank, snapshot.getMarket()));
             String review = document.select("[data-hook=total-review-count]").text();
             LOGGER.info("review: {}", review);
             snapshot.setReviewCount(matchReviewCount(review));
@@ -68,11 +69,12 @@ public class HtmlPageService {
         return 0;
     }
 
-    private int matchRankBest(String rank) {
-        Matcher matcher = Pattern.compile("(#\\d+(,?\\d*)*\\s)").matcher(rank);
+    private int matchRankBest(String rank, String market) {
+        String regex = Objects.equals(market, "DE") ? "(Nr\\.\\s\\d+(\\.?\\d*)*\\s)" : "(#\\d+(,?\\d*)*\\s)";
+        Matcher matcher = Pattern.compile(regex).matcher(rank);
         int best = 0;
         while (matcher.find()) {
-            String rankString = rank.substring(matcher.start(), matcher.end()).replaceAll("[#,\\s]", "");
+            String rankString = rank.substring(matcher.start(), matcher.end()).replaceAll("[^0-9]", "");
             int rankInt = Integer.valueOf(rankString);
             if (best == 0 || best > rankInt) {
                 best = rankInt;
