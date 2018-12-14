@@ -45,6 +45,8 @@ dependencies {
             fileTree(dir: 'libs', include: ['*.jar'])
     )
 
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
     runtime 'mysql:mysql-connector-java'
 
     testCompile (
