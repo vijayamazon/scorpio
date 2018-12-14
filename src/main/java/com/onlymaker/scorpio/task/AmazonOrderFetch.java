@@ -36,7 +36,7 @@ public class AmazonOrderFetch {
     @Autowired
     AmazonOrderItemRepository amazonOrderItemRepository;
 
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 0 0 * * *")
     public void everyday() {
         LOGGER.info("everyday fetch task ...");
         handling(orderService.getListOrdersResponseByCreateTimeLastDay(), this::saveOrder);
@@ -94,17 +94,25 @@ public class AmazonOrderFetch {
     }
 
     private void save(Order order) {
-        AmazonOrder amazonOrder = new AmazonOrder(order);
-        amazonOrder.setMarket(configuration.getMarketplace());
-        amazonOrder.setStore(configuration.getAppName());
-        amazonOrderRepository.save(amazonOrder);
+        try {
+            AmazonOrder amazonOrder = new AmazonOrder(order);
+            amazonOrder.setMarket(configuration.getMarketplace());
+            amazonOrder.setStore(configuration.getAppName());
+            amazonOrderRepository.save(amazonOrder);
+        } catch (Throwable t) {
+            LOGGER.error("saving order error: {}", order.getAmazonOrderId(), t);
+        }
     }
 
     private void save(String amazonOrderId, OrderItem orderItem) {
-        LOGGER.info("saving order {} item {}", amazonOrderId, orderItem.getOrderItemId());
-        AmazonOrderItem amazonOrderItem = new AmazonOrderItem(amazonOrderId, orderItem);
-        amazonOrderItem.setMarket(configuration.getMarketplace());
-        amazonOrderItem.setStore(configuration.getAppName());
-        amazonOrderItemRepository.save(amazonOrderItem);
+        try {
+            LOGGER.info("saving order {} item {}", amazonOrderId, orderItem.getOrderItemId());
+            AmazonOrderItem amazonOrderItem = new AmazonOrderItem(amazonOrderId, orderItem);
+            amazonOrderItem.setMarket(configuration.getMarketplace());
+            amazonOrderItem.setStore(configuration.getAppName());
+            amazonOrderItemRepository.save(amazonOrderItem);
+        } catch (Throwable t) {
+            LOGGER.error("saving order item error: {}", orderItem.getOrderItemId(), t);
+        }
     }
 }
