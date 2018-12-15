@@ -2,7 +2,9 @@ package com.onlymaker.scorpio.mws;
 
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
 import com.onlymaker.scorpio.Main;
+import com.onlymaker.scorpio.config.Amazon;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,8 +17,14 @@ import java.util.concurrent.TimeUnit;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Main.class)
 public class InventoryServiceTest {
+    private InventoryService inventoryService;
     @Autowired
-    InventoryService inventoryService;
+    Amazon amazon;
+
+    @Before
+    public void setup() {
+        inventoryService = new InventoryService(amazon.getList().get(0));
+    }
 
     @Test
     public void status() {

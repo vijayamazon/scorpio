@@ -23,12 +23,13 @@ repositories {
 }
 
 ext {
+    APP = 'scorpio'
     VERSION = '1.1'
 }
 
 bootJar {
     exclude 'application.properties'
-    baseName 'scorpio'
+    baseName "${APP}"
     version "${VERSION}"
 }
 

@@ -1,13 +1,7 @@
-package com.onlymaker.scorpio.mws;
+package com.onlymaker.scorpio.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
-
-@Component
-@ConfigurationProperties("mws")
-public class Configuration {
-    private String appName;
-    private String appVersion;
+public class MarketWebService {
+    private String store;
     private String marketplace;
     private String marketplaceId;
     private String marketplaceUrl;
@@ -16,20 +10,12 @@ public class Configuration {
     private String secretKey;
     private String authToken;
 
-    public String getAppName() {
-        return appName;
+    public String getStore() {
+        return store;
     }
 
-    public void setAppName(String appName) {
-        this.appName = appName;
-    }
-
-    public String getAppVersion() {
-        return appVersion;
-    }
-
-    public void setAppVersion(String appVersion) {
-        this.appVersion = appVersion;
+    public void setStore(String store) {
+        this.store = store;
     }
 
     public String getMarketplace() {

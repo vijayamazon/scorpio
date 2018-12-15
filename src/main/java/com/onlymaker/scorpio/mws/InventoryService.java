@@ -4,8 +4,9 @@ import com.amazonservices.mws.FulfillmentInventory._2010_10_01.FBAInventoryServi
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.FBAInventoryServiceMWSClient;
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.FBAInventoryServiceMWSConfig;
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
+import com.onlymaker.scorpio.config.AppInfo;
+import com.onlymaker.scorpio.config.MarketWebService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 
@@ -16,18 +17,22 @@ import static com.amazonservices.mws.FulfillmentInventory._2010_10_01.samples.Li
  * maximum request quota of 30
  * two requests every second
  */
-@Service
 public class InventoryService {
     /** The client, lazy initialized. Async client is also a sync client. */
     private static FBAInventoryServiceMWSAsyncClient client;
+    private MarketWebService mws;
     @Autowired
-    Configuration configuration;
+    AppInfo appInfo;
+
+    public InventoryService(MarketWebService mws) {
+        this.mws = mws;
+    }
 
     public GetServiceStatusResponse getServiceStatusResponse() {
         GetServiceStatusRequest request = new GetServiceStatusRequest();
-        request.setSellerId(configuration.getSellerId());
-        request.setMWSAuthToken(configuration.getAuthToken());
-        request.setMarketplace(configuration.getMarketplace());
+        request.setSellerId(mws.getSellerId());
+        request.setMWSAuthToken(mws.getAuthToken());
+        request.setMarketplace(mws.getMarketplace());
         return getClient().getServiceStatus(request);
     }
 
@@ -37,19 +42,19 @@ public class InventoryService {
 
     public ListInventorySupplyByNextTokenResponse getListInventorySupplyByNextTokenResponse(String nextToken) {
         ListInventorySupplyByNextTokenRequest request = new ListInventorySupplyByNextTokenRequest();
-        request.setSellerId(configuration.getSellerId());
-        request.setMWSAuthToken(configuration.getAuthToken());
-        request.setMarketplace(configuration.getMarketplace());
+        request.setSellerId(mws.getSellerId());
+        request.setMWSAuthToken(mws.getAuthToken());
+        request.setMarketplace(mws.getMarketplace());
         request.setNextToken(nextToken);
         return getClient().listInventorySupplyByNextToken(request);
     }
 
     public ListInventorySupplyRequest buildRequestWithSku(String ... sku) {
         ListInventorySupplyRequest request = new ListInventorySupplyRequest();
-        request.setSellerId(configuration.getSellerId());
-        request.setMWSAuthToken(configuration.getAuthToken());
-        request.setMarketplace(configuration.getMarketplace());
-        request.setMarketplaceId(configuration.getMarketplaceId());
+        request.setSellerId(mws.getSellerId());
+        request.setMWSAuthToken(mws.getAuthToken());
+        request.setMarketplace(mws.getMarketplace());
+        request.setMarketplaceId(mws.getMarketplaceId());
         SellerSkuList sellerSkus = new SellerSkuList();
         sellerSkus.withMember(sku);
         request.setSellerSkus(sellerSkus);
@@ -58,10 +63,10 @@ public class InventoryService {
 
     public ListInventorySupplyRequest buildRequestWithDate() {
         ListInventorySupplyRequest request = new ListInventorySupplyRequest();
-        request.setSellerId(configuration.getSellerId());
-        request.setMWSAuthToken(configuration.getAuthToken());
-        request.setMarketplace(configuration.getMarketplace());
-        request.setMarketplaceId(configuration.getMarketplaceId());
+        request.setSellerId(mws.getSellerId());
+        request.setMWSAuthToken(mws.getAuthToken());
+        request.setMarketplace(mws.getMarketplace());
+        request.setMarketplaceId(mws.getMarketplaceId());
         LocalDate date = LocalDate.now();
         request.setQueryStartDateTime(Utils.getXMLGregorianCalendar(date.minusDays(1)));
         return request;
@@ -84,12 +89,12 @@ public class InventoryService {
     private synchronized FBAInventoryServiceMWSAsyncClient getAsyncClient() {
         if (client==null) {
             FBAInventoryServiceMWSConfig config = new FBAInventoryServiceMWSConfig();
-            config.setServiceURL(configuration.getMarketplaceUrl());
+            config.setServiceURL(mws.getMarketplaceUrl());
             client = new FBAInventoryServiceMWSAsyncClient(
-                    configuration.getAccessKey(),
-                    configuration.getSecretKey(),
-                    configuration.getAppName(),
-                    configuration.getAppVersion(),
+                    mws.getAccessKey(),
+                    mws.getSecretKey(),
+                    appInfo.getName(),
+                    appInfo.getVersion(),
                     config, null);
         }
         return client;

@@ -3,7 +3,9 @@ package com.onlymaker.scorpio.mws;
 import com.amazonaws.mws.MarketplaceWebServiceException;
 import com.amazonaws.mws.model.*;
 import com.onlymaker.scorpio.Main;
+import com.onlymaker.scorpio.config.Amazon;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +22,14 @@ import java.util.concurrent.TimeUnit;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Main.class)
 public class ReportServiceTest {
+    private ReportService reportService;
     @Autowired
-    ReportService reportService;
+    Amazon amazon;
+
+    @Before
+    public void setup() {
+        reportService = new ReportService(amazon.getList().get(0));
+    }
 
     @Test
     public void requestReport() throws MarketplaceWebServiceException {

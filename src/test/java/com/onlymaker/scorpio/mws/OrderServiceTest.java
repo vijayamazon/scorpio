@@ -4,11 +4,13 @@ import com.amazonservices.mws.orders._2013_09_01.model.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlymaker.scorpio.Main;
+import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.data.AmazonOrder;
 import com.onlymaker.scorpio.data.AmazonOrderItem;
 import com.onlymaker.scorpio.data.AmazonOrderItemRepository;
 import com.onlymaker.scorpio.data.AmazonOrderRepository;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,12 +23,18 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest(classes = Main.class)
 public class OrderServiceTest {
     private ObjectMapper mapper = new ObjectMapper();
+    private OrderService orderService;
     @Autowired
-    OrderService orderService;
+    Amazon amazon;
     @Autowired
     AmazonOrderRepository amazonOrderRepository;
     @Autowired
     AmazonOrderItemRepository amazonOrderItemRepository;
+
+    @Before
+    public void setup() {
+        orderService = new OrderService(amazon.getList().get(0));
+    }
 
     @Test
     public void listOrders() {

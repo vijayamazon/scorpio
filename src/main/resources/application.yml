@@ -12,16 +12,18 @@ logging:
     root: INFO
     com.onlymaker.scorpio: DEBUG
 
-mws:
-  mode: central|satellite
-  app-name: store
-  app-version: ${VERSION}
-  marketplace: US|UK|DE
-  marketplace-id: marketplaceId
-  marketplace-url: marketplaceUrl
-  seller-id: sellerId
-  access-key: accessKey
-  secret-key: secretKey
-  auth-token: authToken
+app:
+  name: ${APP}
+  version: ${VERSION}
+  mode:
 
-task.fetch-order.cron: "0 0 2 * * *"
+amazon:
+  list:
+    - store: store
+      marketplace: marketplace
+      marketplace-id: marketplaceId
+      marketplace-url: marketplaceUrl
+      seller-id: sellerId
+      access-key: accessKey
+      secret-key: secretKey
+      auth-token: authToken

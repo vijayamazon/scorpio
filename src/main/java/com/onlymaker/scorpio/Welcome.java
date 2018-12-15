@@ -1,10 +1,10 @@
 package com.onlymaker.scorpio;
 
-import com.onlymaker.scorpio.mws.Configuration;
+import com.onlymaker.scorpio.config.Amazon;
+import com.onlymaker.scorpio.config.AppInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -12,14 +12,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class Welcome implements ApplicationRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(Welcome.class);
-    @Value("${mws.mode}")
-    String mode;
     @Autowired
-    Configuration configuration;
+    AppInfo appInfo;
+    @Autowired
+    Amazon amazon;
 
     @Override
     public void run(ApplicationArguments args) {
         LOGGER.info("========== WELCOME ==========");
-        LOGGER.info("{} {} starting ... mode {}", configuration.getAppName(), configuration.getAppVersion(), mode);
+        LOGGER.info("Starting {}-{} ... {}", appInfo.getName(), appInfo.getVersion(), appInfo.getMode());
+        LOGGER.info("Registering amazon store ... ");
+        amazon.getList().forEach(mws -> LOGGER.info("Register {}", mws.getStore()));
+        LOGGER.info("=============================");
     }
 }

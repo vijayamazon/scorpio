@@ -16,11 +16,12 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Service
-@ConditionalOnProperty(prefix = "mws", name = "mode", havingValue = "central")
+@ConditionalOnProperty(prefix = "app", name = "mode", havingValue = "central")
 public class AmazonHtmlPageFetch {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonHtmlPageFetch.class);
-    private static final long INIT_DELAY = 60000;
-    private static final long FIX_DELAY = 8 * 3600000;
+    private static final long HOUR_IN_MS = 3600000;
+    private static final long INIT_DELAY = 60000; // 1min
+    private static final long FIX_DELAY = 8 * HOUR_IN_MS;
     private static final int FETCH_INTERVAL = 1;
     @Autowired
     HtmlPageService htmlPageService;
