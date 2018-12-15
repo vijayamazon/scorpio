@@ -36,7 +36,7 @@ public class AmazonOrderFetch {
     @Autowired
     AmazonOrderItemRepository amazonOrderItemRepository;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "${task.fetch-order.cron}")
     public void everyday() {
         LOGGER.info("everyday fetch task ...");
         handling(orderService.getListOrdersResponseByCreateTimeLastDay(), this::saveOrder);

@@ -19,7 +19,6 @@ public class OrderService {
         ListOrdersRequest request = new ListOrdersRequest();
         LocalDate date = LocalDate.now();
         request.setCreatedAfter(Utils.getXMLGregorianCalendar(date.minusDays(1)));
-        request.setCreatedBefore(Utils.getXMLGregorianCalendar(date));
         return getListOrdersResponse(request);
     }
 
@@ -27,7 +26,6 @@ public class OrderService {
         ListOrdersRequest request = new ListOrdersRequest();
         LocalDate date = LocalDate.now();
         request.setLastUpdatedAfter(Utils.getXMLGregorianCalendar(date.minusDays(30)));
-        request.setLastUpdatedBefore(Utils.getXMLGregorianCalendar(date));
         return getListOrdersResponse(request);
     }
 

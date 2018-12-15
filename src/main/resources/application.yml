@@ -23,3 +23,5 @@ mws:
   access-key: accessKey
   secret-key: secretKey
   auth-token: authToken
+
+task.fetch-order.cron: "0 0 2 * * *"
