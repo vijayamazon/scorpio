@@ -11,6 +11,8 @@ import java.util.Collections;
 
 public class OrderService {
     private static MarketplaceWebServiceOrdersAsyncClient client;
+    private static final long FETCH_ORDER_INTERVAL_IN_MS = 60000;
+    private static final long FETCH_ORDER_ITEM_INTERVAL_IN_MS = 5000;
     private AppInfo appInfo;
     private MarketWebService mws;
 
@@ -37,7 +39,15 @@ public class OrderService {
         return getListOrdersResponse(request);
     }
 
+    private ListOrdersResponse getListOrdersResponse(ListOrdersRequest request) {
+        forceWaiting(FETCH_ORDER_INTERVAL_IN_MS);
+        request.setSellerId(mws.getSellerId());
+        request.setMarketplaceId(Collections.singletonList(mws.getMarketplaceId()));
+        return getClient().listOrders(request);
+    }
+
     public ListOrdersByNextTokenResponse getListOrdersByNextTokenResponse(String nextToken) {
+        forceWaiting(FETCH_ORDER_INTERVAL_IN_MS);
         ListOrdersByNextTokenRequest request = new ListOrdersByNextTokenRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
@@ -46,6 +56,7 @@ public class OrderService {
     }
 
     public ListOrderItemsResponse getListOrderItemsResponse(String orderId) {
+        forceWaiting(FETCH_ORDER_ITEM_INTERVAL_IN_MS);
         ListOrderItemsRequest request = new ListOrderItemsRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
@@ -54,17 +65,12 @@ public class OrderService {
     }
 
     public ListOrderItemsByNextTokenResponse getListOrderItemsByNextTokenResponse(String nextToken) {
+        forceWaiting(FETCH_ORDER_ITEM_INTERVAL_IN_MS);
         ListOrderItemsByNextTokenRequest request = new ListOrderItemsByNextTokenRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
         request.setNextToken(nextToken);
         return getClient().listOrderItemsByNextToken(request);
-    }
-
-    private ListOrdersResponse getListOrdersResponse(ListOrdersRequest request) {
-        request.setSellerId(mws.getSellerId());
-        request.setMarketplaceId(Collections.singletonList(mws.getMarketplaceId()));
-        return getClient().listOrders(request);
     }
 
     private synchronized MarketplaceWebServiceOrdersAsyncClient getClient() {
@@ -79,5 +85,13 @@ public class OrderService {
                     config, null);
         }
         return client;
+    }
+
+    private void forceWaiting(long milliSeconds) {
+        try {
+            Thread.sleep(milliSeconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

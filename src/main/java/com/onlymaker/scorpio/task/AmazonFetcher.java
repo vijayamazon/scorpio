@@ -24,9 +24,7 @@ public class AmazonFetcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonFetcher.class);
     private static final long SECOND_IN_MS = 1000;
     private static final long INIT_DELAY = 30 * SECOND_IN_MS;
-    private static final long FIX_DELAY = 24 * 3600 * SECOND_IN_MS;
-    private static final long LIST_ORDER_INTERVAL = 60 * SECOND_IN_MS;
-    private static final long LIST_ORDER_ITEM_INTERVAL = 10 * SECOND_IN_MS;
+    private static final long FIX_DELAY = 3600 * SECOND_IN_MS;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     @Autowired
     AppInfo appInfo;
@@ -58,6 +56,7 @@ public class AmazonFetcher {
                     AmazonEntrySnapshot snapshot = htmlPageService.parse(entry);
                     amazonEntrySnapshotRepository.save(snapshot);
                     lastAsin = entry.getAsin();
+                    Thread.sleep(SECOND_IN_MS);
                 }
             } catch (Throwable t) {
                 LOGGER.info("fetch html ({}) unexpected error: {}", entry.getAsin(), t, t.getMessage(), t);
@@ -92,11 +91,6 @@ public class AmazonFetcher {
         }
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
-            try {
-                Thread.sleep(LIST_ORDER_INTERVAL);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             ListOrdersByNextTokenResult nextResult = orderService.getListOrdersByNextTokenResponse(nextToken).getListOrdersByNextTokenResult();
             list = nextResult.getOrders();
             for (Order order : list) {
@@ -112,11 +106,6 @@ public class AmazonFetcher {
         result.getOrderItems().forEach(o -> saveOrderItem(orderService.getMws().getStore(), orderService.getMws(). getMarketplace(), amazonOrderId, o));
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
-            try {
-                Thread.sleep(LIST_ORDER_ITEM_INTERVAL);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             ListOrderItemsByNextTokenResult nextResult = orderService.getListOrderItemsByNextTokenResponse(nextToken).getListOrderItemsByNextTokenResult();
             nextResult.getOrderItems().forEach(o -> saveOrderItem(orderService.getMws().getStore(), orderService.getMws().getMarketplace(), amazonOrderId, o));
             nextToken = nextResult.getNextToken();
@@ -128,11 +117,6 @@ public class AmazonFetcher {
         result.getOrders().forEach(this::updateOrder);
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
-            try {
-                Thread.sleep(LIST_ORDER_INTERVAL);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             ListOrdersByNextTokenResult nextResult = orderService.getListOrdersByNextTokenResponse(nextToken).getListOrdersByNextTokenResult();
             nextResult.getOrders().forEach(this::updateOrder);
             nextToken = nextResult.getNextToken();
