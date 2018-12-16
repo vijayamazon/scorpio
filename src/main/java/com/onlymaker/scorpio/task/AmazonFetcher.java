@@ -24,7 +24,7 @@ public class AmazonFetcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonFetcher.class);
     private static final long SECOND_IN_MS = 1000;
     private static final long INIT_DELAY = 30 * SECOND_IN_MS;
-    private static final long FIX_DELAY = 3600 * SECOND_IN_MS;
+    private static final long FIX_DELAY = 24* 3600 * SECOND_IN_MS;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     @Autowired
     AppInfo appInfo;
