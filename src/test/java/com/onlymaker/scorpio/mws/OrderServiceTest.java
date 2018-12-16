@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
+import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.data.AmazonOrder;
 import com.onlymaker.scorpio.data.AmazonOrderItem;
 import com.onlymaker.scorpio.data.AmazonOrderItemRepository;
@@ -25,6 +26,8 @@ public class OrderServiceTest {
     private ObjectMapper mapper = new ObjectMapper();
     private OrderService orderService;
     @Autowired
+    AppInfo appInfo;
+    @Autowired
     Amazon amazon;
     @Autowired
     AmazonOrderRepository amazonOrderRepository;
@@ -33,7 +36,7 @@ public class OrderServiceTest {
 
     @Before
     public void setup() {
-        orderService = new OrderService(amazon.getList().get(0));
+        orderService = new OrderService(appInfo, amazon.getList().get(0));
     }
 
     @Test

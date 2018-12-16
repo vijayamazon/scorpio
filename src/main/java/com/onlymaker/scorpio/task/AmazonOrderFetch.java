@@ -48,7 +48,7 @@ public class AmazonOrderFetch {
             OrderService orderService;
             List<MarketWebService> list = amazon.getList();
             for (MarketWebService mws : list) {
-                orderService = new OrderService(mws);
+                orderService = new OrderService(appInfo, mws);
                 fetchOrder(orderService);
                 updateOrder(orderService);
             }

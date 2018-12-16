@@ -6,7 +6,6 @@ import com.amazonservices.mws.FulfillmentInventory._2010_10_01.FBAInventoryServi
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 
@@ -20,11 +19,11 @@ import static com.amazonservices.mws.FulfillmentInventory._2010_10_01.samples.Li
 public class InventoryService {
     /** The client, lazy initialized. Async client is also a sync client. */
     private static FBAInventoryServiceMWSAsyncClient client;
+    private AppInfo appInfo;
     private MarketWebService mws;
-    @Autowired
-    AppInfo appInfo;
 
-    public InventoryService(MarketWebService mws) {
+    public InventoryService(AppInfo appInfo, MarketWebService mws) {
+        this.appInfo = appInfo;
         this.mws = mws;
     }
 

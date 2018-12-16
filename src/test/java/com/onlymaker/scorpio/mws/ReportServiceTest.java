@@ -4,6 +4,7 @@ import com.amazonaws.mws.MarketplaceWebServiceException;
 import com.amazonaws.mws.model.*;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
+import com.onlymaker.scorpio.config.AppInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,11 +25,13 @@ import java.util.concurrent.TimeUnit;
 public class ReportServiceTest {
     private ReportService reportService;
     @Autowired
+    AppInfo appInfo;
+    @Autowired
     Amazon amazon;
 
     @Before
     public void setup() {
-        reportService = new ReportService(amazon.getList().get(0));
+        reportService = new ReportService(appInfo, amazon.getList().get(0));
     }
 
     @Test

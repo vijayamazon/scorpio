@@ -6,7 +6,6 @@ import com.amazonaws.mws.MarketplaceWebServiceException;
 import com.amazonaws.mws.model.*;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -19,11 +18,11 @@ public class ReportService {
         put("order", "_GET_FLAT_FILE_ORDERS_DATA_");
         put("performance", "_GET_V1_SELLER_PERFORMANCE_REPORT_");
     }};
+    private AppInfo appInfo;
     private MarketWebService mws;
-    @Autowired
-    AppInfo appInfo;
 
-    public ReportService(MarketWebService mws) {
+    public ReportService(AppInfo appInfo, MarketWebService mws) {
+        this.appInfo = appInfo;
         this.mws = mws;
     }
 

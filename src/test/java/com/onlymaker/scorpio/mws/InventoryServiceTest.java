@@ -3,6 +3,7 @@ package com.onlymaker.scorpio.mws;
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
+import com.onlymaker.scorpio.config.AppInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,11 +20,13 @@ import java.util.concurrent.TimeUnit;
 public class InventoryServiceTest {
     private InventoryService inventoryService;
     @Autowired
+    AppInfo appInfo;
+    @Autowired
     Amazon amazon;
 
     @Before
     public void setup() {
-        inventoryService = new InventoryService(amazon.getList().get(0));
+        inventoryService = new InventoryService(appInfo, amazon.getList().get(0));
     }
 
     @Test

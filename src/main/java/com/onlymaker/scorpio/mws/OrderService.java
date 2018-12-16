@@ -5,18 +5,17 @@ import com.amazonservices.mws.orders._2013_09_01.MarketplaceWebServiceOrdersConf
 import com.amazonservices.mws.orders._2013_09_01.model.*;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.Collections;
 
 public class OrderService {
     private static MarketplaceWebServiceOrdersAsyncClient client;
+    private AppInfo appInfo;
     private MarketWebService mws;
-    @Autowired
-    AppInfo appInfo;
 
-    public OrderService(MarketWebService mws) {
+    public OrderService(AppInfo appInfo, MarketWebService mws) {
+        this.appInfo = appInfo;
         this.mws = mws;
     }
 
