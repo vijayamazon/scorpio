@@ -20,9 +20,9 @@ public class Welcome implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         LOGGER.info("========== WELCOME ==========");
-        LOGGER.info("Starting {}-{} ... {}", appInfo.getName(), appInfo.getVersion(), appInfo.getMode());
+        LOGGER.info("Starting {}-{} ...", appInfo.getName(), appInfo.getVersion());
         LOGGER.info("Registering amazon store ... ");
-        amazon.getList().forEach(mws -> LOGGER.info("Register {}", mws.getStore()));
+        amazon.getList().forEach(mws -> LOGGER.info("Register store: {}", mws.getStore()));
         LOGGER.info("=============================");
     }
 }

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 public class AppInfo {
     private String name;
     private String version;
-    private String mode;
 
     public String getName() {
         return name;
@@ -24,13 +23,5 @@ public class AppInfo {
 
     public void setVersion(String version) {
         this.version = version;
-    }
-
-    public String getMode() {
-        return mode;
-    }
-
-    public void setMode(String mode) {
-        this.mode = mode;
     }
 }

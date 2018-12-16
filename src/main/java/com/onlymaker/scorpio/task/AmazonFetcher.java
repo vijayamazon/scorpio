@@ -6,36 +6,38 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
-import com.onlymaker.scorpio.data.AmazonOrder;
-import com.onlymaker.scorpio.data.AmazonOrderItem;
-import com.onlymaker.scorpio.data.AmazonOrderItemRepository;
-import com.onlymaker.scorpio.data.AmazonOrderRepository;
+import com.onlymaker.scorpio.data.*;
+import com.onlymaker.scorpio.mws.HtmlPageService;
 import com.onlymaker.scorpio.mws.OrderService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Objects;
 
 @Service
-@ConditionalOnProperty(prefix = "app", name = "mode", havingValue = "satellite")
-public class AmazonOrderFetch {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AmazonOrderFetch.class);
-    private static final long HOUR_IN_MS = 3600000;
-    private static final long INIT_DELAY = 2 * HOUR_IN_MS;
-    private static final long FIX_DELAY = 24 * HOUR_IN_MS;
-    private static final int LIST_ORDER_INTERVAL_IN_MINUTES = 1;
-    private static final int LIST_ORDER_ITEM_INTERVAL_IN_SECONDS = 10;
+public class AmazonFetcher {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AmazonFetcher.class);
+    private static final long SECOND_IN_MS = 1000;
+    private static final long INIT_DELAY = 30 * SECOND_IN_MS;
+    private static final long FIX_DELAY = 24 * 3600 * SECOND_IN_MS;
+    private static final long LIST_ORDER_INTERVAL = 60 * SECOND_IN_MS;
+    private static final long LIST_ORDER_ITEM_INTERVAL = 10 * SECOND_IN_MS;
     private static final ObjectMapper MAPPER = new ObjectMapper();
     @Autowired
     AppInfo appInfo;
     @Autowired
     Amazon amazon;
+    @Autowired
+    HtmlPageService htmlPageService;
+    @Autowired
+    AmazonEntryRepository amazonEntryRepository;
+    @Autowired
+    AmazonEntrySnapshotRepository amazonEntrySnapshotRepository;
     @Autowired
     AmazonOrderRepository amazonOrderRepository;
     @Autowired
@@ -43,17 +45,41 @@ public class AmazonOrderFetch {
 
     @Scheduled(initialDelay = INIT_DELAY, fixedDelay = FIX_DELAY)
     public void everyday() {
-        LOGGER.info("everyday fetch task ...");
-        try {
-            OrderService orderService;
-            List<MarketWebService> list = amazon.getList();
-            for (MarketWebService mws : list) {
-                orderService = new OrderService(appInfo, mws);
-                fetchOrder(orderService);
-                updateOrder(orderService);
+        LOGGER.info("run fetch task ...");
+        fetchHtml();
+        fetchMwsOrder();
+    }
+
+    private void fetchHtml() {
+        String lastAsin = "";
+        for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByAsin(AmazonEntry.STATUS_ENABLED)) {
+            try {
+                if (!Objects.equals(lastAsin, entry.getAsin())) {
+                    AmazonEntrySnapshot snapshot = htmlPageService.parse(entry);
+                    amazonEntrySnapshotRepository.save(snapshot);
+                    lastAsin = entry.getAsin();
+                }
+            } catch (Throwable t) {
+                LOGGER.info("fetch html ({}) unexpected error: {}", entry.getAsin(), t, t.getMessage(), t);
             }
-        } catch (Throwable t) {
-            LOGGER.info("fetch order unexpected error: {}", t.getMessage(), t);
+        }
+    }
+
+    private void fetchMwsOrder() {
+        OrderService orderService;
+        List<MarketWebService> list = amazon.getList();
+        for (MarketWebService mws : list) {
+            orderService = new OrderService(appInfo, mws);
+            try {
+                fetchOrder(orderService);
+            } catch (Throwable t) {
+                LOGGER.info("fetch order ({}) unexpected error: {}", mws.getStore(), t.getMessage(), t);
+            }
+            try {
+                updateOrder(orderService);
+            } catch (Throwable t) {
+                LOGGER.info("fetch order ({}) unexpected error: {}", mws.getStore(), t.getMessage(), t);
+            }
         }
     }
 
@@ -67,7 +93,7 @@ public class AmazonOrderFetch {
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             try {
-                TimeUnit.MINUTES.sleep(LIST_ORDER_INTERVAL_IN_MINUTES);
+                Thread.sleep(LIST_ORDER_INTERVAL);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -87,7 +113,7 @@ public class AmazonOrderFetch {
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             try {
-                TimeUnit.SECONDS.sleep(LIST_ORDER_ITEM_INTERVAL_IN_SECONDS);
+                Thread.sleep(LIST_ORDER_ITEM_INTERVAL);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -103,7 +129,7 @@ public class AmazonOrderFetch {
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             try {
-                TimeUnit.MINUTES.sleep(LIST_ORDER_INTERVAL_IN_MINUTES);
+                Thread.sleep(LIST_ORDER_INTERVAL);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
