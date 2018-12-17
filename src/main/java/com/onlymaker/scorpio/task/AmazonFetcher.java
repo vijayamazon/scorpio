@@ -114,11 +114,11 @@ public class AmazonFetcher {
 
     private void updateOrder(OrderService orderService) {
         ListOrdersResult result = orderService.getListOrdersResponseByUpdateTimeLast30Days().getListOrdersResult();
-        result.getOrders().forEach(this::updateOrder);
+        result.getOrders().forEach(order -> updateOrder(orderService, order));
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             ListOrdersByNextTokenResult nextResult = orderService.getListOrdersByNextTokenResponse(nextToken).getListOrdersByNextTokenResult();
-            nextResult.getOrders().forEach(this::updateOrder);
+            nextResult.getOrders().forEach(order -> updateOrder(orderService, order));
             nextToken = nextResult.getNextToken();
         }
     }
@@ -139,7 +139,7 @@ public class AmazonFetcher {
         amazonOrderItemRepository.save(amazonOrderItem);
     }
 
-    private void updateOrder(Order order) {
+    private void updateOrder(OrderService orderService, Order order) {
         AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
         if (amazonOrder != null) {
             String status = order.getOrderStatus();
@@ -151,6 +151,9 @@ public class AmazonFetcher {
                 e.printStackTrace();
             }
             amazonOrderRepository.save(amazonOrder);
+        } else {
+            saveOrder(orderService.getMws().getStore(), orderService.getMws().getMarketplace(), order);
+            fetchOrderItem(orderService, order.getAmazonOrderId());
         }
     }
 }
