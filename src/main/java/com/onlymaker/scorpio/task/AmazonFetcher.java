@@ -1,8 +1,6 @@
 package com.onlymaker.scorpio.task;
 
 import com.amazonservices.mws.orders._2013_09_01.model.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
@@ -24,8 +22,7 @@ public class AmazonFetcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonFetcher.class);
     private static final long SECOND_IN_MS = 1000;
     private static final long INIT_DELAY = 30 * SECOND_IN_MS;
-    private static final long FIX_DELAY = 24* 3600 * SECOND_IN_MS;
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final long FIX_DELAY = 3600 * SECOND_IN_MS;
     @Autowired
     AppInfo appInfo;
     @Autowired
@@ -84,19 +81,11 @@ public class AmazonFetcher {
 
     private void fetchOrder(OrderService orderService) {
         ListOrdersResult result = orderService.getListOrdersResponseByCreateTimeLastDay().getListOrdersResult();
-        List<Order> list = result.getOrders();
-        for (Order order : list) {
-            saveOrder(orderService.getMws().getStore(), orderService.getMws().getMarketplace(), order);
-            fetchOrderItem(orderService, order.getAmazonOrderId());
-        }
+        processOrderList(orderService, result.getOrders());
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             ListOrdersByNextTokenResult nextResult = orderService.getListOrdersByNextTokenResponse(nextToken).getListOrdersByNextTokenResult();
-            list = nextResult.getOrders();
-            for (Order order : list) {
-                saveOrder(orderService.getMws().getStore(), orderService.getMws().getMarketplace(), order);
-                fetchOrderItem(orderService, order.getAmazonOrderId());
-            }
+            processOrderList(orderService, nextResult.getOrders());
             nextToken = nextResult.getNextToken();
         }
     }
@@ -114,21 +103,40 @@ public class AmazonFetcher {
 
     private void updateOrder(OrderService orderService) {
         ListOrdersResult result = orderService.getListOrdersResponseByUpdateTimeLast30Days().getListOrdersResult();
-        result.getOrders().forEach(order -> updateOrder(orderService, order));
+        processOrderList(orderService, result.getOrders());
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             ListOrdersByNextTokenResult nextResult = orderService.getListOrdersByNextTokenResponse(nextToken).getListOrdersByNextTokenResult();
-            nextResult.getOrders().forEach(order -> updateOrder(orderService, order));
+            processOrderList(orderService, nextResult.getOrders());
             nextToken = nextResult.getNextToken();
         }
     }
 
-    private void saveOrder(String store, String market, Order order) {
-        LOGGER.info("saving order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
-        AmazonOrder amazonOrder = new AmazonOrder(order);
+    private void processOrderList(OrderService orderService, List<Order> list) {
+        for (Order order : list) {
+            if (saveOrUpdate(orderService.getMws().getStore(), orderService.getMws().getMarketplace(), order)) {
+                fetchOrderItem(orderService, order.getAmazonOrderId());
+            }
+        }
+    }
+
+    /**
+     * @return if order already existed, return false; else return true;
+     */
+    private boolean saveOrUpdate(String store, String market, Order order) {
+        boolean alreadyExisted = false;
+        AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
+        if (amazonOrder != null){
+            LOGGER.info("updating order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
+            alreadyExisted = true;
+        } else {
+            amazonOrder = new AmazonOrder(order);
+            LOGGER.info("saving order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
+        }
         amazonOrder.setStore(store);
         amazonOrder.setMarket(market);
         amazonOrderRepository.save(amazonOrder);
+        return !alreadyExisted;
     }
 
     private void saveOrderItem(String store, String market, String amazonOrderId, OrderItem orderItem) {
@@ -137,23 +145,5 @@ public class AmazonFetcher {
         amazonOrderItem.setStore(store);
         amazonOrderItem.setMarket(market);
         amazonOrderItemRepository.save(amazonOrderItem);
-    }
-
-    private void updateOrder(OrderService orderService, Order order) {
-        AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
-        if (amazonOrder != null) {
-            String status = order.getOrderStatus();
-            LOGGER.info("updating order {}: {}", order.getAmazonOrderId(), status);
-            amazonOrder.setStatus(status);
-            try {
-                amazonOrder.setData(MAPPER.writeValueAsString(order));
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-            amazonOrderRepository.save(amazonOrder);
-        } else {
-            saveOrder(orderService.getMws().getStore(), orderService.getMws().getMarketplace(), order);
-            fetchOrderItem(orderService, order.getAmazonOrderId());
-        }
     }
 }
