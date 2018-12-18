@@ -26,3 +26,8 @@ amazon:
       auth-token: authToken
       access-key: accessKey
       secret-key: secretKey
+
+fetcher:
+  order:
+    retrospect:
+      days: 3

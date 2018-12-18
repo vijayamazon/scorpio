@@ -32,10 +32,10 @@ public class OrderService {
         return getListOrdersResponse(request);
     }
 
-    public ListOrdersResponse getListOrdersResponseByUpdateTimeLast30Days() {
+    public ListOrdersResponse getListOrdersResponseByUpdateTimeWithinDays(long days) {
         ListOrdersRequest request = new ListOrdersRequest();
         LocalDate date = LocalDate.now();
-        request.setLastUpdatedAfter(Utils.getXMLGregorianCalendar(date.minusDays(30)));
+        request.setLastUpdatedAfter(Utils.getXMLGregorianCalendar(date.minusDays(days)));
         return getListOrdersResponse(request);
     }
 

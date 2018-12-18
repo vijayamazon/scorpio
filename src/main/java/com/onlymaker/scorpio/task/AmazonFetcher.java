@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,8 @@ public class AmazonFetcher {
     private static final long SECOND_IN_MS = 1000;
     private static final long INIT_DELAY = 30 * SECOND_IN_MS;
     private static final long FIX_DELAY = 3600 * SECOND_IN_MS;
+    @Value("${fetcher.order.retrospect.days}")
+    Long orderRetrospectDays;
     @Autowired
     AppInfo appInfo;
     @Autowired
@@ -122,7 +125,7 @@ public class AmazonFetcher {
     }
 
     private void updateOrder(OrderService orderService) {
-        ListOrdersResult result = orderService.getListOrdersResponseByUpdateTimeLast30Days().getListOrdersResult();
+        ListOrdersResult result = orderService.getListOrdersResponseByUpdateTimeWithinDays(orderRetrospectDays).getListOrdersResult();
         processOrderList(orderService, result.getOrders());
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
