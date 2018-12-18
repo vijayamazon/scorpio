@@ -13,11 +13,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ReportService {
-    private static MarketplaceWebServiceClient client;
     public static final Map<String, String> REPORT_TYPE = new HashMap<String, String>() {{
         put("order", "_GET_FLAT_FILE_ORDERS_DATA_");
         put("performance", "_GET_V1_SELLER_PERFORMANCE_REPORT_");
     }};
+    private MarketplaceWebServiceClient client;
     private AppInfo appInfo;
     private MarketWebService mws;
 

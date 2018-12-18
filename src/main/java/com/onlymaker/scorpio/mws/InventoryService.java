@@ -17,14 +17,19 @@ import static com.amazonservices.mws.FulfillmentInventory._2010_10_01.samples.Li
  * two requests every second
  */
 public class InventoryService {
+    private static final long FETCH_INVENTORY_INTERVAL_IN_MS = 5000;
     /** The client, lazy initialized. Async client is also a sync client. */
-    private static FBAInventoryServiceMWSAsyncClient client;
+    private FBAInventoryServiceMWSAsyncClient client;
     private AppInfo appInfo;
     private MarketWebService mws;
 
     public InventoryService(AppInfo appInfo, MarketWebService mws) {
         this.appInfo = appInfo;
         this.mws = mws;
+    }
+
+    public MarketWebService getMws() {
+        return mws;
     }
 
     public GetServiceStatusResponse getServiceStatusResponse() {
@@ -35,10 +40,12 @@ public class InventoryService {
     }
 
     public ListInventorySupplyResponse getListInventorySupplyResponse(ListInventorySupplyRequest request) {
+        forceWaiting(FETCH_INVENTORY_INTERVAL_IN_MS);
         return invokeListInventorySupply(getClient(), request);
     }
 
     public ListInventorySupplyByNextTokenResponse getListInventorySupplyByNextTokenResponse(String nextToken) {
+        forceWaiting(FETCH_INVENTORY_INTERVAL_IN_MS);
         ListInventorySupplyByNextTokenRequest request = new ListInventorySupplyByNextTokenRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
@@ -54,7 +61,7 @@ public class InventoryService {
         return getListInventorySupplyResponse(request);
     }
 
-    public ListInventorySupplyRequest buildRequestWithDate() {
+    public ListInventorySupplyRequest buildRequestWithinLastDay() {
         ListInventorySupplyRequest request = new ListInventorySupplyRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
@@ -78,7 +85,7 @@ public class InventoryService {
      * @return A ready to use client connection.
      */
     private synchronized FBAInventoryServiceMWSAsyncClient getAsyncClient() {
-        if (client==null) {
+        if (client == null) {
             FBAInventoryServiceMWSConfig config = new FBAInventoryServiceMWSConfig();
             config.setServiceURL(mws.getMarketplaceUrl());
             client = new FBAInventoryServiceMWSAsyncClient(
@@ -89,5 +96,13 @@ public class InventoryService {
                     config, null);
         }
         return client;
+    }
+
+    private void forceWaiting(long milliSeconds) {
+        try {
+            Thread.sleep(milliSeconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

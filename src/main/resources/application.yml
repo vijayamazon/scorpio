@@ -23,6 +23,6 @@ amazon:
       marketplace-id: marketplaceId
       marketplace-url: marketplaceUrl
       seller-id: sellerId
+      auth-token: authToken
       access-key: accessKey
       secret-key: secretKey
-      auth-token: authToken

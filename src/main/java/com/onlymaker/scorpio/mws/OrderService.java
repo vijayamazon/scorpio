@@ -10,9 +10,9 @@ import java.time.LocalDate;
 import java.util.Collections;
 
 public class OrderService {
-    private static MarketplaceWebServiceOrdersAsyncClient client;
     private static final long FETCH_ORDER_INTERVAL_IN_MS = 60000;
     private static final long FETCH_ORDER_ITEM_INTERVAL_IN_MS = 5000;
+    private MarketplaceWebServiceOrdersAsyncClient client;
     private AppInfo appInfo;
     private MarketWebService mws;
 

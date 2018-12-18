@@ -51,7 +51,7 @@ public class InventoryServiceTest {
 
     @Test
     public void queryByDate() throws InterruptedException {
-        ListInventorySupplyResponse response = inventoryService.getListInventorySupplyResponse(inventoryService.buildRequestWithDate());
+        ListInventorySupplyResponse response = inventoryService.getListInventorySupplyResponse(inventoryService.buildRequestWithinLastDay());
         List<InventorySupply> list = response.getListInventorySupplyResult()
                 .getInventorySupplyList()
                 .getMember();
@@ -74,7 +74,7 @@ public class InventoryServiceTest {
                 System.out.println("==========" + mws.getSellerId() + "==========");
                 System.out.println("==========" + mws.getAuthToken() + "==========");
                 InventoryService service = new InventoryService(appInfo, mws);
-                ListInventorySupplyResponse response = service.getListInventorySupplyResponse(service.buildRequestWithDate());
+                ListInventorySupplyResponse response = service.getListInventorySupplyResponse(service.buildRequestWithinLastDay());
                 List<InventorySupply> list = response.getListInventorySupplyResult()
                         .getInventorySupplyList()
                         .getMember();
