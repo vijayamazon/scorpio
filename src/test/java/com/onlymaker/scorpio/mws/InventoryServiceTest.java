@@ -4,6 +4,7 @@ import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
+import com.onlymaker.scorpio.config.MarketWebService;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,8 +39,11 @@ public class InventoryServiceTest {
 
     @Test
     public void queryBySku() {
-        ListInventorySupplyResponse response = inventoryService.getListInventorySupplyResponse(inventoryService.buildRequestWithSku("HPUS-P8804B-US15-FBA", "AHUS-HJ1708182-US5-FBA"));
-        List<InventorySupply> list = response.getListInventorySupplyResult()
+        SellerSkuList sellerSkuList = new SellerSkuList();
+        sellerSkuList.withMember("T17012a-US11", "test");
+        List<InventorySupply> list = inventoryService
+                .getListInventorySupplyResponseWithSku(sellerSkuList)
+                .getListInventorySupplyResult()
                 .getInventorySupplyList()
                 .getMember();
         printStock(list);
@@ -62,10 +66,34 @@ public class InventoryServiceTest {
         }
     }
 
+    @Test
+    public void queryForEachStoreOnce() {
+        for (MarketWebService mws : amazon.getList()) {
+            try {
+                System.out.println("==========" + mws.getStore() + "==========");
+                System.out.println("==========" + mws.getSellerId() + "==========");
+                System.out.println("==========" + mws.getAuthToken() + "==========");
+                InventoryService service = new InventoryService(appInfo, mws);
+                ListInventorySupplyResponse response = service.getListInventorySupplyResponse(service.buildRequestWithDate());
+                List<InventorySupply> list = response.getListInventorySupplyResult()
+                        .getInventorySupplyList()
+                        .getMember();
+                if (list.size() != 0) {
+                    printStock(list.get(0));
+                }
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }
+    }
+
     private void printStock(List<InventorySupply> list) {
-        list.forEach(i -> {
-            System.out.println(String.format("asin: %s, fnSku: %s, sku: %s, quantity:", i.getASIN(), i.getFNSKU(), i.getSellerSKU()));
-            System.out.println(String.format("    totalSupply %d, inStockSupply %d", i.getTotalSupplyQuantity(), i.getInStockSupplyQuantity()));
-        });
+        list.forEach(this::printStock);
+    }
+
+    private void printStock(InventorySupply inventorySupply) {
+        System.out.println(String.format("asin: %s, fnSku: %s, sku: %s, quantity:", inventorySupply.getASIN(), inventorySupply.getFNSKU(), inventorySupply.getSellerSKU()));
+        System.out.println(String.format("    totalSupply %d, inStockSupply %d", inventorySupply.getTotalSupplyQuantity(), inventorySupply.getInStockSupplyQuantity()));
+
     }
 }

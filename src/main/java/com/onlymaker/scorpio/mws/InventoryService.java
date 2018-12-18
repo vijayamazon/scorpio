@@ -31,7 +31,6 @@ public class InventoryService {
         GetServiceStatusRequest request = new GetServiceStatusRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
-        request.setMarketplace(mws.getMarketplace());
         return getClient().getServiceStatus(request);
     }
 
@@ -43,29 +42,22 @@ public class InventoryService {
         ListInventorySupplyByNextTokenRequest request = new ListInventorySupplyByNextTokenRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
-        request.setMarketplace(mws.getMarketplace());
         request.setNextToken(nextToken);
         return getClient().listInventorySupplyByNextToken(request);
     }
 
-    public ListInventorySupplyRequest buildRequestWithSku(String ... sku) {
+    public ListInventorySupplyResponse getListInventorySupplyResponseWithSku(SellerSkuList sellerSkuList) {
         ListInventorySupplyRequest request = new ListInventorySupplyRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
-        request.setMarketplace(mws.getMarketplace());
-        request.setMarketplaceId(mws.getMarketplaceId());
-        SellerSkuList sellerSkus = new SellerSkuList();
-        sellerSkus.withMember(sku);
-        request.setSellerSkus(sellerSkus);
-        return request;
+        request.setSellerSkus(sellerSkuList);
+        return getListInventorySupplyResponse(request);
     }
 
     public ListInventorySupplyRequest buildRequestWithDate() {
         ListInventorySupplyRequest request = new ListInventorySupplyRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
-        request.setMarketplace(mws.getMarketplace());
-        request.setMarketplaceId(mws.getMarketplaceId());
         LocalDate date = LocalDate.now();
         request.setQueryStartDateTime(Utils.getXMLGregorianCalendar(date.minusDays(1)));
         return request;
