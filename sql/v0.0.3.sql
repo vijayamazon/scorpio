@@ -9,7 +9,7 @@ create table amazon_inventory
   seller_sku           varchar(50) not null,
   in_stock_quantity    int unsigned not null default 0,
   update_time          timestamp not null default current_timestamp,
-  unique index (asin),
+  index (asin),
   index (market),
   index (store),
   index (seller_sku(10))

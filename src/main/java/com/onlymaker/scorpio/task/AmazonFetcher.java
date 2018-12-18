@@ -154,16 +154,18 @@ public class AmazonFetcher {
 
     private void processInventoryList(String store, String market, List<InventorySupply> list) {
         for (InventorySupply inventorySupply : list) {
-            AmazonInventory amazonInventory = amazonInventoryRepository.findByAsin(inventorySupply.getASIN());
+            String asin = inventorySupply.getASIN();
+            String sellerSku = inventorySupply.getSellerSKU();
+            AmazonInventory amazonInventory = amazonInventoryRepository.findByAsinAndSellerSku(asin, sellerSku);
             if (amazonInventory != null) {
-                LOGGER.info("updating inventory {}: {}", inventorySupply.getASIN(), inventorySupply.getSellerSKU());
+                LOGGER.info("updating inventory {}: {}", asin, sellerSku);
             } else {
-                LOGGER.info("saving inventory {}: {}", inventorySupply.getASIN(), inventorySupply.getSellerSKU());
+                LOGGER.info("saving inventory {}: {}", asin, sellerSku);
                 amazonInventory = new AmazonInventory();
                 amazonInventory.setMarket(market);
                 amazonInventory.setStore(store);
-                amazonInventory.setAsin(inventorySupply.getASIN());
-                amazonInventory.setSellerSku(inventorySupply.getSellerSKU());
+                amazonInventory.setAsin(asin);
+                amazonInventory.setSellerSku(sellerSku);
             }
             amazonInventory.setFnSku(inventorySupply.getFNSKU());
             amazonInventory.setInStockQuantity(inventorySupply.getInStockSupplyQuantity());
