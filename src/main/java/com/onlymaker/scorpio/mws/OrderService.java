@@ -42,6 +42,7 @@ public class OrderService {
     private ListOrdersResponse getListOrdersResponse(ListOrdersRequest request) {
         forceWaiting(FETCH_ORDER_INTERVAL_IN_MS);
         request.setSellerId(mws.getSellerId());
+        request.setMWSAuthToken(mws.getAuthToken());
         request.setMarketplaceId(Collections.singletonList(mws.getMarketplaceId()));
         return getClient().listOrders(request);
     }
