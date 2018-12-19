@@ -159,7 +159,7 @@ public class AmazonFetcher {
         for (InventorySupply inventorySupply : list) {
             String asin = inventorySupply.getASIN();
             String sellerSku = inventorySupply.getSellerSKU();
-            AmazonInventory amazonInventory = amazonInventoryRepository.findByAsinAndSellerSku(asin, sellerSku);
+            AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndAsin(market, asin);
             if (amazonInventory != null) {
                 LOGGER.info("updating inventory {}: {}", asin, sellerSku);
             } else {
