@@ -1,7 +1,6 @@
 package com.onlymaker.scorpio.config;
 
 public class MarketWebService {
-    private String store;
     private String marketplace;
     private String marketplaceId;
     private String marketplaceUrl;
@@ -9,14 +8,6 @@ public class MarketWebService {
     private String accessKey;
     private String secretKey;
     private String authToken;
-
-    public String getStore() {
-        return store;
-    }
-
-    public void setStore(String store) {
-        this.store = store;
-    }
 
     public String getMarketplace() {
         return marketplace;

@@ -24,7 +24,6 @@ public class HtmlPageService {
     public AmazonEntrySnapshot parse(AmazonEntry entry) throws IOException {
         AmazonEntrySnapshot snapshot = new AmazonEntrySnapshot();
         snapshot.setMarket(entry.getMarket());
-        snapshot.setStore(entry.getStore());
         snapshot.setAsin(entry.getAsin());
         snapshot.setSku(entry.getSku());
         snapshot.setCreateTime(new Timestamp(System.currentTimeMillis()));

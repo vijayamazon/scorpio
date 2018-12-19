@@ -15,9 +15,6 @@ public class AmazonInventory {
     @Column(name = "market")
     private String market;
 
-    @Column(name = "store")
-    private String store;
-
     @Column(name = "asin")
     private String asin;
 
@@ -47,14 +44,6 @@ public class AmazonInventory {
 
     public void setMarket(String market) {
         this.market = market;
-    }
-
-    public String getStore() {
-        return store;
-    }
-
-    public void setStore(String store) {
-        this.store = store;
     }
 
     public String getAsin() {

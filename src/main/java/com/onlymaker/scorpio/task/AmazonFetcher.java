@@ -80,12 +80,12 @@ public class AmazonFetcher {
             try {
                 fetchOrder(orderService);
             } catch (Throwable t) {
-                LOGGER.info("fetch order ({}) unexpected error: {}", mws.getStore(), t.getMessage(), t);
+                LOGGER.info("fetch order ({}) unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
             try {
                 updateOrder(orderService);
             } catch (Throwable t) {
-                LOGGER.info("fetch order ({}) unexpected error: {}", mws.getStore(), t.getMessage(), t);
+                LOGGER.info("fetch order ({}) unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -97,7 +97,7 @@ public class AmazonFetcher {
             try {
                 fetchInventory(inventoryService);
             } catch (Throwable t) {
-                LOGGER.info("fetch inventory ({}) unexpected error: {}", mws.getStore(), t.getMessage(), t);
+                LOGGER.info("fetch inventory ({}) unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -115,11 +115,11 @@ public class AmazonFetcher {
 
     private void fetchOrderItem(OrderService orderService, String amazonOrderId) {
         ListOrderItemsResult result = orderService.getListOrderItemsResponse(amazonOrderId).getListOrderItemsResult();
-        result.getOrderItems().forEach(o -> saveOrderItem(orderService.getMws().getStore(), orderService.getMws(). getMarketplace(), amazonOrderId, o));
+        result.getOrderItems().forEach(o -> saveOrderItem(orderService.getMws().getMarketplace(), amazonOrderId, o));
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             ListOrderItemsByNextTokenResult nextResult = orderService.getListOrderItemsByNextTokenResponse(nextToken).getListOrderItemsByNextTokenResult();
-            nextResult.getOrderItems().forEach(o -> saveOrderItem(orderService.getMws().getStore(), orderService.getMws().getMarketplace(), amazonOrderId, o));
+            nextResult.getOrderItems().forEach(o -> saveOrderItem(orderService.getMws().getMarketplace(), amazonOrderId, o));
             nextToken = nextResult.getNextToken();
         }
     }
@@ -138,24 +138,24 @@ public class AmazonFetcher {
     private void fetchInventory(InventoryService inventoryService) {
         ListInventorySupplyRequest request = inventoryService.buildRequestWithinLastDay();
         ListInventorySupplyResponse response = inventoryService.getListInventorySupplyResponse(request);
-        processInventoryList(inventoryService.getMws().getStore(), inventoryService.getMws().getMarketplace(), response.getListInventorySupplyResult().getInventorySupplyList().getMember());
+        processInventoryList(inventoryService.getMws().getMarketplace(), response.getListInventorySupplyResult().getInventorySupplyList().getMember());
         String nextToken = response.getListInventorySupplyResult().getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             ListInventorySupplyByNextTokenResult nextResult = inventoryService.getListInventorySupplyByNextTokenResponse(nextToken).getListInventorySupplyByNextTokenResult();
-            processInventoryList(inventoryService.getMws().getStore(), inventoryService.getMws().getMarketplace(), nextResult.getInventorySupplyList().getMember());
+            processInventoryList(inventoryService.getMws().getMarketplace(), nextResult.getInventorySupplyList().getMember());
             nextToken = nextResult.getNextToken();
         }
     }
 
     private void processOrderList(OrderService orderService, List<Order> list) {
         for (Order order : list) {
-            if (saveOrUpdate(orderService.getMws().getStore(), orderService.getMws().getMarketplace(), order)) {
+            if (saveOrUpdate(orderService.getMws().getMarketplace(), order)) {
                 fetchOrderItem(orderService, order.getAmazonOrderId());
             }
         }
     }
 
-    private void processInventoryList(String store, String market, List<InventorySupply> list) {
+    private void processInventoryList(String market, List<InventorySupply> list) {
         for (InventorySupply inventorySupply : list) {
             String asin = inventorySupply.getASIN();
             String sellerSku = inventorySupply.getSellerSKU();
@@ -166,7 +166,6 @@ public class AmazonFetcher {
                 LOGGER.info("saving inventory {}: {}", asin, sellerSku);
                 amazonInventory = new AmazonInventory();
                 amazonInventory.setMarket(market);
-                amazonInventory.setStore(store);
                 amazonInventory.setAsin(asin);
                 amazonInventory.setSellerSku(sellerSku);
             }
@@ -180,7 +179,7 @@ public class AmazonFetcher {
     /**
      * @return if order already existed, return false; else return true;
      */
-    private boolean saveOrUpdate(String store, String market, Order order) {
+    private boolean saveOrUpdate(String market, Order order) {
         boolean alreadyExisted = false;
         AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
         if (amazonOrder != null){
@@ -190,16 +189,14 @@ public class AmazonFetcher {
             amazonOrder = new AmazonOrder(order);
             LOGGER.info("saving order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
         }
-        amazonOrder.setStore(store);
         amazonOrder.setMarket(market);
         amazonOrderRepository.save(amazonOrder);
         return !alreadyExisted;
     }
 
-    private void saveOrderItem(String store, String market, String amazonOrderId, OrderItem orderItem) {
+    private void saveOrderItem(String market, String amazonOrderId, OrderItem orderItem) {
         LOGGER.info("saving orderItem {} of {}", orderItem.getOrderItemId(), amazonOrderId);
         AmazonOrderItem amazonOrderItem = new AmazonOrderItem(amazonOrderId, orderItem);
-        amazonOrderItem.setStore(store);
         amazonOrderItem.setMarket(market);
         amazonOrderItemRepository.save(amazonOrderItem);
     }

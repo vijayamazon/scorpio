@@ -25,9 +25,6 @@ public class AmazonOrder {
     @Column(name = "market")
     private String market;
 
-    @Column(name = "store")
-    private String store;
-
     @Column(name = "status")
     private String status;
 
@@ -77,14 +74,6 @@ public class AmazonOrder {
 
     public void setMarket(String market) {
         this.market = market;
-    }
-
-    public String getStore() {
-        return store;
-    }
-
-    public void setStore(String store) {
-        this.store = store;
     }
 
     public String getStatus() {
