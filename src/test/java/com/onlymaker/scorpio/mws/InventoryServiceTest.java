@@ -70,7 +70,6 @@ public class InventoryServiceTest {
     public void queryForEachStoreOnce() {
         for (MarketWebService mws : amazon.getList()) {
             try {
-                System.out.println("==========" + mws.getStore() + "==========");
                 System.out.println("==========" + mws.getSellerId() + "==========");
                 System.out.println("==========" + mws.getAuthToken() + "==========");
                 InventoryService service = new InventoryService(appInfo, mws);

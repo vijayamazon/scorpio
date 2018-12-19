@@ -84,7 +84,6 @@ public class OrderServiceTest {
                     amazonOrder = new AmazonOrder(order);
                 }
                 amazonOrder.setMarket("market");
-                amazonOrder.setStore("store");
                 amazonOrderRepository.save(amazonOrder);
                 listOrderItems(order.getAmazonOrderId());
             } else if (o instanceof OrderItem) {
@@ -94,7 +93,6 @@ public class OrderServiceTest {
                     amazonOrderItem = new AmazonOrderItem(id[0], orderItem);
                 }
                 amazonOrderItem.setMarket("market");
-                amazonOrderItem.setStore("store");
                 amazonOrderItemRepository.save(amazonOrderItem);
             }
         } catch (JsonProcessingException e) {
