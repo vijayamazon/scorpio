@@ -21,7 +21,7 @@ public class HtmlPageService {
     private static final Logger LOGGER = LoggerFactory.getLogger(HtmlPageService.class);
     private static final String CHROME_UA = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36";
 
-    public AmazonEntrySnapshot parse(AmazonEntry entry) {
+    public AmazonEntrySnapshot parse(AmazonEntry entry) throws IOException {
         AmazonEntrySnapshot snapshot = new AmazonEntrySnapshot();
         snapshot.setMarket(entry.getMarket());
         snapshot.setStore(entry.getStore());
@@ -30,34 +30,30 @@ public class HtmlPageService {
         snapshot.setCreateTime(new Timestamp(System.currentTimeMillis()));
         String url = entry.getUrl() + entry.getAsin();
         LOGGER.info("parse {}", url);
-        try {
-            HttpConnection connection = (HttpConnection) Jsoup.connect(url);
-            Document document = connection.validateTLSCertificates(false).userAgent(CHROME_UA).get();
-            String rank = document.select("#SalesRank").text();
-            LOGGER.info("rank: {}", rank);
-            snapshot.setRankBest(matchRankBest(rank, snapshot.getMarket()));
-            String review = document.select("[data-hook=total-review-count]").text();
-            LOGGER.info("review: {}", review);
-            snapshot.setReviewCount(matchReviewCount(review));
-            String average = document.select("[data-hook=rating-out-of-text]").text();
-            LOGGER.info("average: {}", average);
-            snapshot.setStarAverage(matchStarAverage(average));
-            Elements star = document.select(".a-meter");
-            LOGGER.info("star: {}", star);
-            snapshot.setStar5(getStarByRate(star, 5));
-            snapshot.setStar4(getStarByRate(star, 4));
-            snapshot.setStar3(getStarByRate(star, 3));
-            snapshot.setStar2(getStarByRate(star, 2));
-            snapshot.setStar1(getStarByRate(star, 1));
-            int variable = document.select("#variation_color_name ul li").size();
-            if (variable == 0) {
-                variable = 1;
-            }
-            LOGGER.info("variable: {}", variable);
-            snapshot.setVariable(variable);
-        } catch (IOException e) {
-            e.printStackTrace();
+        HttpConnection connection = (HttpConnection) Jsoup.connect(url);
+        Document document = connection.validateTLSCertificates(false).userAgent(CHROME_UA).get();
+        String rank = document.select("#SalesRank").text();
+        LOGGER.info("rank: {}", rank);
+        snapshot.setRankBest(matchRankBest(rank, snapshot.getMarket()));
+        String review = document.select("[data-hook=total-review-count]").text();
+        LOGGER.info("review: {}", review);
+        snapshot.setReviewCount(matchReviewCount(review));
+        String average = document.select("[data-hook=rating-out-of-text]").text();
+        LOGGER.info("average: {}", average);
+        snapshot.setStarAverage(matchStarAverage(average));
+        Elements star = document.select(".a-meter");
+        LOGGER.info("star: {}", star);
+        snapshot.setStar5(getStarByRate(star, 5));
+        snapshot.setStar4(getStarByRate(star, 4));
+        snapshot.setStar3(getStarByRate(star, 3));
+        snapshot.setStar2(getStarByRate(star, 2));
+        snapshot.setStar1(getStarByRate(star, 1));
+        int variable = document.select("#variation_color_name ul li").size();
+        if (variable == 0) {
+            variable = 1;
         }
+        LOGGER.info("variable: {}", variable);
+        snapshot.setVariable(variable);
         return snapshot;
     }
 
