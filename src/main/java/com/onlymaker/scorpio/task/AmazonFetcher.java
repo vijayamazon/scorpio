@@ -58,17 +58,16 @@ public class AmazonFetcher {
     }
 
     private void fetchHtml() {
-        String lastAsin = "";
-        for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByAsin(AmazonEntry.STATUS_ENABLED)) {
+        String prev = "";
+        for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByMarketAndAsin(AmazonEntry.STATUS_ENABLED)) {
             try {
-                if (!Objects.equals(lastAsin, entry.getAsin())) {
-                    AmazonEntrySnapshot snapshot = htmlPageService.parse(entry);
-                    amazonEntrySnapshotRepository.save(snapshot);
-                    lastAsin = entry.getAsin();
-                    Thread.sleep(SECOND_IN_MS);
+                if (!Objects.equals(prev, entry.getMarket() + entry.getAsin())) {
+                    amazonEntrySnapshotRepository.save(htmlPageService.parse(entry));
                 }
+                prev = entry.getMarket() + entry.getAsin();
+                Thread.sleep(SECOND_IN_MS);
             } catch (Throwable t) {
-                LOGGER.info("fetch html ({}) unexpected error: {}", entry.getAsin(), t, t.getMessage(), t);
+                LOGGER.info("{} fetch html unexpected error: {}", entry.getMarket(), t, t.getMessage(), t);
             }
         }
     }
@@ -80,12 +79,12 @@ public class AmazonFetcher {
             try {
                 fetchOrder(orderService);
             } catch (Throwable t) {
-                LOGGER.info("fetch order ({}) unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
+                LOGGER.info("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
             try {
                 updateOrder(orderService);
             } catch (Throwable t) {
-                LOGGER.info("fetch order ({}) unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
+                LOGGER.info("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -97,7 +96,7 @@ public class AmazonFetcher {
             try {
                 fetchInventory(inventoryService);
             } catch (Throwable t) {
-                LOGGER.info("fetch inventory ({}) unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
+                LOGGER.info("{} fetch inventory unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -161,13 +160,13 @@ public class AmazonFetcher {
             String fnSku = inventorySupply.getFNSKU();
             AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, new Date(System.currentTimeMillis()));
             if (amazonInventory == null) {
-                LOGGER.info("saving inventory {}: {}", market, fnSku);
+                LOGGER.info("{} saving inventory: {}", market, fnSku);
                 amazonInventory = new AmazonInventory();
                 amazonInventory.setMarket(market);
                 amazonInventory.setFnSku(fnSku);
                 amazonInventory.setCreateDate(new Date(System.currentTimeMillis()));
             } else {
-                LOGGER.info("updating inventory {}: {}", market, fnSku);
+                LOGGER.info("{} updating inventory: {}", market, fnSku);
             }
             amazonInventory.setAsin(inventorySupply.getASIN());
             amazonInventory.setSellerSku(inventorySupply.getSellerSKU());
@@ -181,7 +180,7 @@ public class AmazonFetcher {
     private AmazonOrder saveOrUpdate(String market, Order order) {
         AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
         if (amazonOrder == null){
-            LOGGER.info("saving order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
+            LOGGER.info("{} saving order: {}, {}", market, order.getAmazonOrderId(), order.getOrderStatus());
             amazonOrder = new AmazonOrder();
             amazonOrder.setMarket(market);
             amazonOrder.setAmazonOrderId(order.getAmazonOrderId());
@@ -192,7 +191,7 @@ public class AmazonFetcher {
             amazonOrder.setCreateTime(new Timestamp(System.currentTimeMillis()));
             amazonOrderRepository.save(amazonOrder);
         } else if (!Objects.equals(amazonOrder.getStatus(), order.getOrderStatus())) {
-            LOGGER.info("updating order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
+            LOGGER.info("{} updating order: {}, {}", market, order.getAmazonOrderId(), order.getOrderStatus());
             amazonOrder.setStatus(order.getOrderStatus());
             amazonOrder.setData(Utils.getJsonString(order));
             amazonOrder.setPurchaseDate(new Date(order.getPurchaseDate().toGregorianCalendar().getTimeInMillis()));
@@ -202,7 +201,7 @@ public class AmazonFetcher {
     }
 
     private void saveOrderItem(AmazonOrder order, OrderItem orderItem) {
-        LOGGER.info("saving orderItem {} of {}", orderItem.getOrderItemId(), order.getAmazonOrderId());
+        LOGGER.info("{} saving orderItem: {}, {}", order.getMarket(), order.getAmazonOrderId(), orderItem.getOrderItemId());
         AmazonOrderItem amazonOrderItem = new AmazonOrderItem();
         amazonOrderItem.setMarket(order.getMarket());
         amazonOrderItem.setAmazonOrderId(order.getAmazonOrderId());

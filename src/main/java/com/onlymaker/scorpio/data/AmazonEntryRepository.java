@@ -3,5 +3,5 @@ package com.onlymaker.scorpio.data;
 import org.springframework.data.repository.CrudRepository;
 
 public interface AmazonEntryRepository extends CrudRepository<AmazonEntry, Long> {
-    Iterable<AmazonEntry> findAllByStatusOrderByAsin(int status);
+    Iterable<AmazonEntry> findAllByStatusOrderByMarketAndAsin(int status);
 }
