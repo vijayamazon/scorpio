@@ -44,6 +44,9 @@ create table amazon_entry
   url             varchar(500) not null default '',
   status          tinyint(1) unsigned not null default 1 comment 'disable:0;enable:1',
   create_time     timestamp not null default current_timestamp,
+  start_date      date comment 'start monitoring date',
+  stop_date       date comment 'stop monitoring date',
+  unique index (market, asin, sku),
   index (asin),
   index (sku(10))
 ) engine = InnoDB default charset = utf8mb4 collate = utf8mb4_unicode_ci;
