@@ -32,10 +32,6 @@ public class OrderService {
         return mws;
     }
 
-    public long getFetchOrderItemIntervalInMs() {
-        return FETCH_ORDER_ITEM_INTERVAL_IN_MS;
-    }
-
     public ListOrdersResponse getListOrdersResponseByCreateTimeLastDay() {
         ListOrdersRequest request = new ListOrdersRequest();
         LocalDate date = LocalDate.now();
@@ -47,6 +43,7 @@ public class OrderService {
         ListOrdersRequest request = new ListOrdersRequest();
         LocalDate date = LocalDate.now();
         request.setLastUpdatedAfter(Utils.getXMLGregorianCalendar(date.minusDays(days)));
+        request.setLastUpdatedBefore(Utils.getXMLGregorianCalendar(date.minusDays(1)));
         return getListOrdersResponse(request);
     }
 

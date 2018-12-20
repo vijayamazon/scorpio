@@ -59,7 +59,7 @@ public class AmazonFetcher {
 
     private void fetchHtml() {
         String prev = "";
-        for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByMarketAndAsin(AmazonEntry.STATUS_ENABLED)) {
+        for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED)) {
             try {
                 if (!Objects.equals(prev, entry.getMarket() + entry.getAsin())) {
                     amazonEntrySnapshotRepository.save(htmlPageService.parse(entry));
@@ -77,12 +77,12 @@ public class AmazonFetcher {
         for (MarketWebService mws : list) {
             OrderService orderService = new OrderService(appInfo, mws);
             try {
-                fetchOrder(orderService);
+                fetchOrderByCreateTime(orderService);
             } catch (Throwable t) {
                 LOGGER.info("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
             try {
-                updateOrder(orderService);
+                fetchOrderByUpdateTime(orderService);
             } catch (Throwable t) {
                 LOGGER.info("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
@@ -101,8 +101,19 @@ public class AmazonFetcher {
         }
     }
 
-    private void fetchOrder(OrderService orderService) {
+    private void fetchOrderByCreateTime(OrderService orderService) {
         ListOrdersResult result = orderService.getListOrdersResponseByCreateTimeLastDay().getListOrdersResult();
+        processOrderList(orderService, result.getOrders());
+        String nextToken = result.getNextToken();
+        while (StringUtils.isNotEmpty(nextToken)) {
+            ListOrdersByNextTokenResult nextResult = orderService.getListOrdersByNextTokenResponse(nextToken).getListOrdersByNextTokenResult();
+            processOrderList(orderService, nextResult.getOrders());
+            nextToken = nextResult.getNextToken();
+        }
+    }
+
+    private void fetchOrderByUpdateTime(OrderService orderService) {
+        ListOrdersResult result = orderService.getListOrdersResponseByUpdateTimeWithinDays(orderRetrospectDays).getListOrdersResult();
         processOrderList(orderService, result.getOrders());
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
@@ -123,17 +134,6 @@ public class AmazonFetcher {
         }
     }
 
-    private void updateOrder(OrderService orderService) {
-        ListOrdersResult result = orderService.getListOrdersResponseByUpdateTimeWithinDays(orderRetrospectDays).getListOrdersResult();
-        processOrderList(orderService, result.getOrders());
-        String nextToken = result.getNextToken();
-        while (StringUtils.isNotEmpty(nextToken)) {
-            ListOrdersByNextTokenResult nextResult = orderService.getListOrdersByNextTokenResponse(nextToken).getListOrdersByNextTokenResult();
-            processOrderList(orderService, nextResult.getOrders());
-            nextToken = nextResult.getNextToken();
-        }
-    }
-
     private void fetchInventory(InventoryService inventoryService) {
         ListInventorySupplyRequest request = inventoryService.buildRequestWithinLastDay();
         ListInventorySupplyResponse response = inventoryService.getListInventorySupplyResponse(request);
@@ -148,8 +148,8 @@ public class AmazonFetcher {
 
     private void processOrderList(OrderService orderService, List<Order> list) {
         for (Order order : list) {
-            AmazonOrder amazonOrder = saveOrUpdate(orderService.getMws().getMarketplace(), order);
-            if (amazonOrder.getCreateTime().getTime() + orderService.getFetchOrderItemIntervalInMs() > System.currentTimeMillis()) {
+            AmazonOrder amazonOrder = saveOrder(orderService.getMws().getMarketplace(), order);
+            if (amazonOrder != null) {
                 fetchOrderItem(orderService, amazonOrder);
             }
         }
@@ -177,7 +177,7 @@ public class AmazonFetcher {
         }
     }
 
-    private AmazonOrder saveOrUpdate(String market, Order order) {
+    private AmazonOrder saveOrder(String market, Order order) {
         AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
         if (amazonOrder == null){
             LOGGER.info("{} saving order: {}, {}", market, order.getAmazonOrderId(), order.getOrderStatus());
@@ -190,14 +190,11 @@ public class AmazonFetcher {
             amazonOrder.setPurchaseDate(new Date(order.getPurchaseDate().toGregorianCalendar().getTimeInMillis()));
             amazonOrder.setCreateTime(new Timestamp(System.currentTimeMillis()));
             amazonOrderRepository.save(amazonOrder);
-        } else if (!Objects.equals(amazonOrder.getStatus(), order.getOrderStatus())) {
-            LOGGER.info("{} updating order: {}, {}", market, order.getAmazonOrderId(), order.getOrderStatus());
-            amazonOrder.setStatus(order.getOrderStatus());
-            amazonOrder.setData(Utils.getJsonString(order));
-            amazonOrder.setPurchaseDate(new Date(order.getPurchaseDate().toGregorianCalendar().getTimeInMillis()));
-            amazonOrderRepository.save(amazonOrder);
+            return amazonOrder;
+        } else {
+            // already existed
+            return null;
         }
-        return amazonOrder;
     }
 
     private void saveOrderItem(AmazonOrder order, OrderItem orderItem) {
