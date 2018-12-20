@@ -24,7 +24,7 @@ repositories {
 
 ext {
     APP = 'scorpio'
-    VERSION = '1.6'
+    VERSION = '2.0'
 }
 
 bootJar {
