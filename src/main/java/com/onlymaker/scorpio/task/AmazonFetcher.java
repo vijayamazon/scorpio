@@ -12,6 +12,7 @@ import com.onlymaker.scorpio.data.*;
 import com.onlymaker.scorpio.mws.HtmlPageService;
 import com.onlymaker.scorpio.mws.InventoryService;
 import com.onlymaker.scorpio.mws.OrderService;
+import com.onlymaker.scorpio.mws.Utils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
@@ -28,8 +30,6 @@ import java.util.Objects;
 public class AmazonFetcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonFetcher.class);
     private static final long SECOND_IN_MS = 1000;
-    private static final long INIT_DELAY = 30 * SECOND_IN_MS;
-    private static final long FIX_DELAY = 3600 * SECOND_IN_MS;
     @Value("${fetcher.order.retrospect.days}")
     Long orderRetrospectDays;
     @Autowired
@@ -49,12 +49,12 @@ public class AmazonFetcher {
     @Autowired
     AmazonInventoryRepository amazonInventoryRepository;
 
-    @Scheduled(initialDelay = INIT_DELAY, fixedDelay = FIX_DELAY)
+    @Scheduled(cron = "${fetcher.cron}")
     public void everyday() {
         LOGGER.info("run fetch task ...");
         fetchHtml();
-        fetchMwsInventory();
         fetchMwsOrder();
+        fetchMwsInventory();
     }
 
     private void fetchHtml() {
@@ -113,13 +113,13 @@ public class AmazonFetcher {
         }
     }
 
-    private void fetchOrderItem(OrderService orderService, String amazonOrderId) {
-        ListOrderItemsResult result = orderService.getListOrderItemsResponse(amazonOrderId).getListOrderItemsResult();
-        result.getOrderItems().forEach(o -> saveOrderItem(orderService.getMws().getMarketplace(), amazonOrderId, o));
+    private void fetchOrderItem(OrderService orderService, AmazonOrder order) {
+        ListOrderItemsResult result = orderService.getListOrderItemsResponse(order.getAmazonOrderId()).getListOrderItemsResult();
+        result.getOrderItems().forEach(item -> saveOrderItem(order, item));
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             ListOrderItemsByNextTokenResult nextResult = orderService.getListOrderItemsByNextTokenResponse(nextToken).getListOrderItemsByNextTokenResult();
-            nextResult.getOrderItems().forEach(o -> saveOrderItem(orderService.getMws().getMarketplace(), amazonOrderId, o));
+            nextResult.getOrderItems().forEach(item -> saveOrderItem(order, item));
             nextToken = nextResult.getNextToken();
         }
     }
@@ -149,55 +149,72 @@ public class AmazonFetcher {
 
     private void processOrderList(OrderService orderService, List<Order> list) {
         for (Order order : list) {
-            if (saveOrUpdate(orderService.getMws().getMarketplace(), order)) {
-                fetchOrderItem(orderService, order.getAmazonOrderId());
+            AmazonOrder amazonOrder = saveOrUpdate(orderService.getMws().getMarketplace(), order);
+            if (amazonOrder.getCreateTime().getTime() + orderService.getFetchOrderItemIntervalInMs() > System.currentTimeMillis()) {
+                fetchOrderItem(orderService, amazonOrder);
             }
         }
     }
 
     private void processInventoryList(String market, List<InventorySupply> list) {
         for (InventorySupply inventorySupply : list) {
-            String asin = inventorySupply.getASIN();
-            String sellerSku = inventorySupply.getSellerSKU();
-            AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndAsin(market, asin);
-            if (amazonInventory != null) {
-                LOGGER.info("updating inventory {}: {}", asin, sellerSku);
-            } else {
-                LOGGER.info("saving inventory {}: {}", asin, sellerSku);
+            String fnSku = inventorySupply.getFNSKU();
+            AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, new Date(System.currentTimeMillis()));
+            if (amazonInventory == null) {
+                LOGGER.info("saving inventory {}: {}", market, fnSku);
                 amazonInventory = new AmazonInventory();
                 amazonInventory.setMarket(market);
-                amazonInventory.setAsin(asin);
-                amazonInventory.setSellerSku(sellerSku);
+                amazonInventory.setFnSku(fnSku);
+                amazonInventory.setCreateDate(new Date(System.currentTimeMillis()));
+            } else {
+                LOGGER.info("updating inventory {}: {}", market, fnSku);
             }
-            amazonInventory.setFnSku(inventorySupply.getFNSKU());
+            amazonInventory.setAsin(inventorySupply.getASIN());
+            amazonInventory.setSellerSku(inventorySupply.getSellerSKU());
             amazonInventory.setInStockQuantity(inventorySupply.getInStockSupplyQuantity());
-            amazonInventory.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+            amazonInventory.setTotalQuantity(inventorySupply.getTotalSupplyQuantity());
+            amazonInventory.setFulfillment(inventorySupply.getSellerSKU().contains("FBA") ? Utils.FULFILL_BY_FBA : Utils.FULFILL_NOT_FBA);
             amazonInventoryRepository.save(amazonInventory);
         }
     }
 
-    /**
-     * @return if order already existed, return false; else return true;
-     */
-    private boolean saveOrUpdate(String market, Order order) {
-        boolean alreadyExisted = false;
+    private AmazonOrder saveOrUpdate(String market, Order order) {
         AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
-        if (amazonOrder != null){
-            LOGGER.info("updating order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
-            alreadyExisted = true;
-        } else {
-            amazonOrder = new AmazonOrder(order);
+        if (amazonOrder == null){
             LOGGER.info("saving order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
+            amazonOrder = new AmazonOrder();
+            amazonOrder.setMarket(market);
+            amazonOrder.setAmazonOrderId(order.getAmazonOrderId());
+            amazonOrder.setStatus(order.getOrderStatus());
+            amazonOrder.setFulfillment(order.getFulfillmentChannel());
+            amazonOrder.setData(Utils.getJsonString(order));
+            amazonOrder.setPurchaseDate(new Date(order.getPurchaseDate().toGregorianCalendar().getTimeInMillis()));
+            amazonOrder.setCreateTime(new Timestamp(System.currentTimeMillis()));
+            amazonOrderRepository.save(amazonOrder);
+        } else if (!Objects.equals(amazonOrder.getStatus(), order.getOrderStatus())) {
+            LOGGER.info("updating order {}: {}", order.getAmazonOrderId(), order.getOrderStatus());
+            amazonOrder.setStatus(order.getOrderStatus());
+            amazonOrder.setData(Utils.getJsonString(order));
+            amazonOrder.setPurchaseDate(new Date(order.getPurchaseDate().toGregorianCalendar().getTimeInMillis()));
+            amazonOrderRepository.save(amazonOrder);
         }
-        amazonOrder.setMarket(market);
-        amazonOrderRepository.save(amazonOrder);
-        return !alreadyExisted;
+        return amazonOrder;
     }
 
-    private void saveOrderItem(String market, String amazonOrderId, OrderItem orderItem) {
-        LOGGER.info("saving orderItem {} of {}", orderItem.getOrderItemId(), amazonOrderId);
-        AmazonOrderItem amazonOrderItem = new AmazonOrderItem(amazonOrderId, orderItem);
-        amazonOrderItem.setMarket(market);
+    private void saveOrderItem(AmazonOrder order, OrderItem orderItem) {
+        LOGGER.info("saving orderItem {} of {}", orderItem.getOrderItemId(), order.getAmazonOrderId());
+        AmazonOrderItem amazonOrderItem = new AmazonOrderItem();
+        amazonOrderItem.setMarket(order.getMarket());
+        amazonOrderItem.setAmazonOrderId(order.getAmazonOrderId());
+        amazonOrderItem.setStatus(order.getStatus());
+        amazonOrderItem.setFulfillment(order.getFulfillment());
+        amazonOrderItem.setPurchaseDate(order.getPurchaseDate());
+        amazonOrderItem.setAmazonOrderItemId(orderItem.getOrderItemId());
+        amazonOrderItem.setQuantity(orderItem.getQuantityOrdered());
+        amazonOrderItem.setAsin(orderItem.getASIN());
+        amazonOrderItem.setSellerSku(orderItem.getSellerSKU());
+        amazonOrderItem.setData(Utils.getJsonString(orderItem));
+        amazonOrderItem.setCreateTime(new Timestamp(System.currentTimeMillis()));
         amazonOrderItemRepository.save(amazonOrderItem);
     }
 }

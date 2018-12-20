@@ -1,15 +1,12 @@
 package com.onlymaker.scorpio.mws;
 
-import com.amazonservices.mws.orders._2013_09_01.model.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.amazonservices.mws.orders._2013_09_01.model.ListOrderItemsByNextTokenResult;
+import com.amazonservices.mws.orders._2013_09_01.model.ListOrderItemsResult;
+import com.amazonservices.mws.orders._2013_09_01.model.Order;
+import com.amazonservices.mws.orders._2013_09_01.model.OrderItem;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
-import com.onlymaker.scorpio.data.AmazonOrder;
-import com.onlymaker.scorpio.data.AmazonOrderItem;
-import com.onlymaker.scorpio.data.AmazonOrderItemRepository;
-import com.onlymaker.scorpio.data.AmazonOrderRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,16 +20,11 @@ import java.util.concurrent.TimeUnit;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Main.class)
 public class OrderServiceTest {
-    private ObjectMapper mapper = new ObjectMapper();
     private OrderService orderService;
     @Autowired
     AppInfo appInfo;
     @Autowired
     Amazon amazon;
-    @Autowired
-    AmazonOrderRepository amazonOrderRepository;
-    @Autowired
-    AmazonOrderItemRepository amazonOrderItemRepository;
 
     @Before
     public void setup() {
@@ -41,30 +33,21 @@ public class OrderServiceTest {
 
     @Test
     public void listOrders() {
-        ListOrdersResult result = orderService.getListOrdersResponseByCreateTimeLastDay().getListOrdersResult();
-        result.getOrders().forEach(this::handle);
-        String nextToken = result.getNextToken();
-        while (StringUtils.isNotEmpty(nextToken)) {
-            System.out.println("========== next token: " + nextToken);
-            ListOrdersByNextTokenResult nextResult = orderService.getListOrdersByNextTokenResponse(nextToken).getListOrdersByNextTokenResult();
-            nextResult.getOrders().forEach(this::handle);
-            nextToken = nextResult.getNextToken();
-            try {
-                TimeUnit.MINUTES.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        orderService
+                .getListOrdersResponseByCreateTimeLastDay()
+                .getListOrdersResult()
+                .getOrders()
+                .forEach(this::print);
     }
 
     private void listOrderItems(String amazonOrderId) {
         ListOrderItemsResult result = orderService.getListOrderItemsResponse(amazonOrderId).getListOrderItemsResult();
-        result.getOrderItems().forEach(o -> handle(o, amazonOrderId));
+        result.getOrderItems().forEach(this::print);
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
             System.out.println("========== next token: " + nextToken);
             ListOrderItemsByNextTokenResult nextResult = orderService.getListOrderItemsByNextTokenResponse(nextToken).getListOrderItemsByNextTokenResult();
-            nextResult.getOrderItems().forEach(o -> handle(o, amazonOrderId));
+            nextResult.getOrderItems().forEach(this::print);
             nextToken = nextResult.getNextToken();
             try {
                 TimeUnit.SECONDS.sleep(10);
@@ -74,29 +57,14 @@ public class OrderServiceTest {
         }
     }
 
-    private void handle(Object o, String ... id) {
-        try {
-            System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(o));
-            if (o instanceof Order) {
-                Order order = (Order) o;
-                AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
-                if (amazonOrder == null) {
-                    amazonOrder = new AmazonOrder(order);
-                }
-                amazonOrder.setMarket("market");
-                amazonOrderRepository.save(amazonOrder);
-                listOrderItems(order.getAmazonOrderId());
-            } else if (o instanceof OrderItem) {
-                OrderItem orderItem = (OrderItem) o;
-                AmazonOrderItem amazonOrderItem = amazonOrderItemRepository.findByAmazonOrderItemId(orderItem.getOrderItemId());
-                if (amazonOrderItem == null) {
-                    amazonOrderItem = new AmazonOrderItem(id[0], orderItem);
-                }
-                amazonOrderItem.setMarket("market");
-                amazonOrderItemRepository.save(amazonOrderItem);
-            }
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
+    private void print(Object o) {
+        if (o instanceof Order) {
+            Order order = (Order) o;
+            System.out.println("order:" + order.getAmazonOrderId());
+            listOrderItems(order.getAmazonOrderId());
+        } else if (o instanceof OrderItem) {
+            OrderItem orderItem = (OrderItem) o;
+            System.out.println("item:" + orderItem.getOrderItemId() + ":" + orderItem.getQuantityOrdered());
         }
     }
 }

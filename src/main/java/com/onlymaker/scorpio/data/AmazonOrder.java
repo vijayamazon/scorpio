@@ -1,56 +1,37 @@
 package com.onlymaker.scorpio.data;
 
-import com.amazonservices.mws.orders._2013_09_01.model.Order;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import javax.persistence.*;
+import java.sql.Date;
 import java.sql.Timestamp;
-import java.util.Objects;
 
 @Entity
 @Table(name = "amazon_order")
 public class AmazonOrder {
-    private static final String FBA = "AFN";
-    private static final String MFN = "MFN";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true, nullable = false)
     private Long id;
 
-    @Column(name = "amazon_order_id")
-    private String amazonOrderId;
-
     @Column(name = "market")
     private String market;
+
+    @Column(name = "amazon_order_id")
+    private String amazonOrderId;
 
     @Column(name = "status")
     private String status;
 
     @Column(name = "fulfillment")
-    private Integer fulfillment;
+    private String fulfillment;
 
     @Column(name = "data")
     private String data;
 
+    @Column(name = "purchase_date")
+    private Date purchaseDate;
+
     @Column(name = "create_time")
     private Timestamp createTime;
-
-    public AmazonOrder() {}
-
-    public AmazonOrder(Order order) {
-        amazonOrderId = order.getAmazonOrderId();
-        status = order.getOrderStatus();
-        fulfillment = Objects.equals(order.getFulfillmentChannel(), FBA) ? 0 : 1;
-        try {
-            data = new ObjectMapper().writeValueAsString(order);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            data = "";
-        }
-        createTime = new Timestamp(System.currentTimeMillis());
-    }
 
     public Long getId() {
         return id;
@@ -58,14 +39,6 @@ public class AmazonOrder {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getAmazonOrderId() {
-        return amazonOrderId;
-    }
-
-    public void setAmazonOrderId(String amazonOrderId) {
-        this.amazonOrderId = amazonOrderId;
     }
 
     public String getMarket() {
@@ -76,6 +49,14 @@ public class AmazonOrder {
         this.market = market;
     }
 
+    public String getAmazonOrderId() {
+        return amazonOrderId;
+    }
+
+    public void setAmazonOrderId(String amazonOrderId) {
+        this.amazonOrderId = amazonOrderId;
+    }
+
     public String getStatus() {
         return status;
     }
@@ -84,11 +65,11 @@ public class AmazonOrder {
         this.status = status;
     }
 
-    public Integer getFulfillment() {
+    public String getFulfillment() {
         return fulfillment;
     }
 
-    public void setFulfillment(Integer fulfillment) {
+    public void setFulfillment(String fulfillment) {
         this.fulfillment = fulfillment;
     }
 
@@ -98,6 +79,14 @@ public class AmazonOrder {
 
     public void setData(String data) {
         this.data = data;
+    }
+
+    public Date getPurchaseDate() {
+        return purchaseDate;
+    }
+
+    public void setPurchaseDate(Date purchaseDate) {
+        this.purchaseDate = purchaseDate;
     }
 
     public Timestamp getCreateTime() {

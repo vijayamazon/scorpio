@@ -1,10 +1,7 @@
 package com.onlymaker.scorpio.data;
 
-import com.amazonservices.mws.orders._2013_09_01.model.OrderItem;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import javax.persistence.*;
+import java.sql.Date;
 import java.sql.Timestamp;
 
 @Entity
@@ -15,14 +12,26 @@ public class AmazonOrderItem {
     @Column(name = "id", unique = true, nullable = false)
     private Long id;
 
+    @Column(name = "market")
+    private String market;
+
     @Column(name = "amazon_order_id")
     private String amazonOrderId;
 
     @Column(name = "amazon_order_item_id")
     private String amazonOrderItemId;
 
-    @Column(name = "market")
-    private String market;
+    @Column(name = "quantity")
+    private Integer quantity;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "fulfillment")
+    private String fulfillment;
+
+    @Column(name = "purchase_date")
+    private Date purchaseDate;
 
     @Column(name = "asin")
     private String asin;
@@ -36,27 +45,20 @@ public class AmazonOrderItem {
     @Column(name = "create_time")
     private Timestamp createTime;
 
-    public AmazonOrderItem() {}
-
-    public AmazonOrderItem(String id, OrderItem orderItem) {
-        amazonOrderId = id;
-        amazonOrderItemId = orderItem.getOrderItemId();
-        asin = orderItem.getASIN();
-        sellerSku = orderItem.getSellerSKU();
-        try {
-            data = new ObjectMapper().writeValueAsString(orderItem);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        createTime = new Timestamp(System.currentTimeMillis());
-    }
-
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getMarket() {
+        return market;
+    }
+
+    public void setMarket(String market) {
+        this.market = market;
     }
 
     public String getAmazonOrderId() {
@@ -75,12 +77,36 @@ public class AmazonOrderItem {
         this.amazonOrderItemId = amazonOrderItemId;
     }
 
-    public String getMarket() {
-        return market;
+    public Integer getQuantity() {
+        return quantity;
     }
 
-    public void setMarket(String market) {
-        this.market = market;
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getFulfillment() {
+        return fulfillment;
+    }
+
+    public void setFulfillment(String fulfillment) {
+        this.fulfillment = fulfillment;
+    }
+
+    public Date getPurchaseDate() {
+        return purchaseDate;
+    }
+
+    public void setPurchaseDate(Date purchaseDate) {
+        this.purchaseDate = purchaseDate;
     }
 
     public String getAsin() {

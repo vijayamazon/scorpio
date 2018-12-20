@@ -1,7 +1,7 @@
 package com.onlymaker.scorpio.data;
 
 import javax.persistence.*;
-import java.sql.Timestamp;
+import java.sql.Date;
 
 @Entity
 @Table(name = "amazon_entry_snapshot")
@@ -47,8 +47,8 @@ public class AmazonEntrySnapshot {
     @Column(name = "star_5")
     private Integer star5;
 
-    @Column(name = "create_time")
-    private Timestamp createTime;
+    @Column(name = "create_date")
+    private Date createDate;
 
     public Long getId() {
         return id;
@@ -154,11 +154,11 @@ public class AmazonEntrySnapshot {
         this.star5 = star5;
     }
 
-    public Timestamp getCreateTime() {
-        return createTime;
+    public Date getCreateDate() {
+        return createDate;
     }
 
-    public void setCreateTime(Timestamp createTime) {
-        this.createTime = createTime;
+    public void setCreateDate(Date createDate) {
+        this.createDate = createDate;
     }
 }

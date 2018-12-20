@@ -7,11 +7,18 @@ import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 public class OrderService {
     private static final long FETCH_ORDER_INTERVAL_IN_MS = 60000;
     private static final long FETCH_ORDER_ITEM_INTERVAL_IN_MS = 5000;
+    private static final List<String> STATUS_FILTER = new ArrayList<String>() {{
+        add("Unshipped");
+        add("PartiallyShipped");
+        add("Shipped");
+    }};
     private MarketplaceWebServiceOrdersAsyncClient client;
     private AppInfo appInfo;
     private MarketWebService mws;
@@ -23,6 +30,10 @@ public class OrderService {
 
     public MarketWebService getMws() {
         return mws;
+    }
+
+    public long getFetchOrderItemIntervalInMs() {
+        return FETCH_ORDER_ITEM_INTERVAL_IN_MS;
     }
 
     public ListOrdersResponse getListOrdersResponseByCreateTimeLastDay() {
@@ -44,6 +55,7 @@ public class OrderService {
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
         request.setMarketplaceId(Collections.singletonList(mws.getMarketplaceId()));
+        request.setOrderStatus(STATUS_FILTER);
         return getClient().listOrders(request);
     }
 

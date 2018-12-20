@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.sql.Timestamp;
+import java.sql.Date;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,7 +26,7 @@ public class HtmlPageService {
         snapshot.setMarket(entry.getMarket());
         snapshot.setAsin(entry.getAsin());
         snapshot.setSku(entry.getSku());
-        snapshot.setCreateTime(new Timestamp(System.currentTimeMillis()));
+        snapshot.setCreateDate(new Date(System.currentTimeMillis()));
         String url = entry.getUrl() + entry.getAsin();
         LOGGER.info("parse {}", url);
         HttpConnection connection = (HttpConnection) Jsoup.connect(url);
