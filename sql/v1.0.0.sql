@@ -92,13 +92,13 @@ create table amazon_inventory
 ) engine = InnoDB default charset = utf8mb4 collate = utf8mb4_unicode_ci;
 
 drop view if exists vs_order_item;
-create view vs_order_item as select i.market, e.asin as entry, e.sku, i.asin, i.seller_sku, i.fulfillment, i.purchase_date, i.quantity from amazon_order_item i, amazon_entry e where i.seller_sku like concat('%', e.sku, '-%');
+create view vs_order_item as select i.market, e.asin as entry, e.sku, i.asin, i.seller_sku, i.fulfillment, i.purchase_date, i.quantity from amazon_order_item i, amazon_entry e where i.market = e.market and i.seller_sku like concat('%', e.sku, '-%');
 
 drop view if exists vs_order;
-create view vs_order as select i.market, e.asin as entry, i.fulfillment, i.purchase_date, sum(i.quantity) as total_quantity from amazon_order_item i, amazon_entry e where i.seller_sku like concat('%', e.sku, '-%') group by i.market, e.asin, i.fulfillment, i.purchase_date;
+create view vs_order as select i.market, e.asin as entry, i.fulfillment, i.purchase_date, sum(i.quantity) as total_quantity from amazon_order_item i, amazon_entry e where i.market = e.market and i.seller_sku like concat('%', e.sku, '-%') group by i.market, e.asin, i.fulfillment, i.purchase_date;
 
 drop view if exists vs_inventory_item;
-create view vs_inventory_item as select i.market, e.asin as entry, e.sku, i.asin, i.fn_sku, i.seller_sku, i.fulfillment, i.create_date from amazon_inventory i, amazon_entry e where  i.seller_sku like concat('%', e.sku, '-%');
+create view vs_inventory_item as select i.market, e.asin as entry, e.sku, i.asin, i.fn_sku, i.seller_sku, i.fulfillment, i.create_date from amazon_inventory i, amazon_entry e where i.market = e.market and i.seller_sku like concat('%', e.sku, '-%');
 
 drop view if exists vs_inventory;
-create view vs_inventory as select i.market, e.asin as entry, i.fulfillment, i.create_date, sum(i.in_stock_quantity) as quantity from amazon_inventory i, amazon_entry e where  i.seller_sku like concat('%', e.sku, '-%') group by i.market, e.asin, i.fulfillment, i.create_date;
+create view vs_inventory as select i.market, e.asin as entry, i.fulfillment, i.create_date, sum(i.in_stock_quantity) as quantity from amazon_inventory i, amazon_entry e where i.market = e.market and i.seller_sku like concat('%', e.sku, '-%') group by i.market, e.asin, i.fulfillment, i.create_date;
