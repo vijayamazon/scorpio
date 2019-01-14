@@ -7,7 +7,7 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '2.1.0.RELEASE'
+    id 'org.springframework.boot' version '2.1.2.RELEASE'
     id 'io.spring.dependency-management' version '1.0.6.RELEASE'
 }
 
@@ -18,7 +18,7 @@ repositories {
 
 ext {
     APP = 'scorpio'
-    VERSION = '2.3'
+    VERSION = '2.4'
 }
 
 bootJar {
