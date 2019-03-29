@@ -168,6 +168,7 @@ public class AmazonFetcher {
             } else {
                 LOGGER.info("{} updating inventory: {}", market, fnSku);
             }
+            LOGGER.debug("{} raw inventory: {}", market, Utils.getJsonString(inventorySupply));
             amazonInventory.setAsin(inventorySupply.getASIN());
             amazonInventory.setSellerSku(inventorySupply.getSellerSKU());
             amazonInventory.setInStockQuantity(inventorySupply.getInStockSupplyQuantity());
