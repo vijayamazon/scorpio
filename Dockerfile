@@ -1,4 +1,4 @@
-FROM openjdk:8u191-jdk-alpine3.8
+FROM openjdk:8u201-jdk-alpine3.9
 
 LABEL maintainer="jibo@outlook.com"
 
