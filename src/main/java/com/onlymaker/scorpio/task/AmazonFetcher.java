@@ -1,9 +1,6 @@
 package com.onlymaker.scorpio.task;
 
-import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.InventorySupply;
-import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.ListInventorySupplyByNextTokenResult;
-import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.ListInventorySupplyRequest;
-import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.ListInventorySupplyResponse;
+import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
 import com.amazonservices.mws.orders._2013_09_01.model.*;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
@@ -18,6 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -25,11 +25,13 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class AmazonFetcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonFetcher.class);
     private static final long SECOND_IN_MS = 1000;
+    private static final int PAGE_SIZE = 50;
     @Value("${fetcher.order.retrospect.days}")
     Long orderRetrospectDays;
     @Autowired
@@ -48,6 +50,8 @@ public class AmazonFetcher {
     AmazonOrderItemRepository amazonOrderItemRepository;
     @Autowired
     AmazonInventoryRepository amazonInventoryRepository;
+    @Autowired
+    AmazonSellerSkuRepository amazonSellerSkuRepository;
 
     @Scheduled(cron = "${fetcher.cron}")
     public void everyday() {
@@ -94,7 +98,7 @@ public class AmazonFetcher {
         for (MarketWebService mws : list) {
             InventoryService inventoryService = new InventoryService(appInfo, mws);
             try {
-                fetchInventory(inventoryService);
+                fetchInventoryBySellerSku(inventoryService);
             } catch (Throwable t) {
                 LOGGER.info("{} fetch inventory unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
@@ -134,6 +138,8 @@ public class AmazonFetcher {
         }
     }
 
+    @Deprecated
+    // Query inventory by date only return the stock changed since the day
     private void fetchInventory(InventoryService inventoryService) {
         ListInventorySupplyRequest request = inventoryService.buildRequestWithinLastDay();
         ListInventorySupplyResponse response = inventoryService.getListInventorySupplyResponse(request);
@@ -143,6 +149,32 @@ public class AmazonFetcher {
             ListInventorySupplyByNextTokenResult nextResult = inventoryService.getListInventorySupplyByNextTokenResponse(nextToken).getListInventorySupplyByNextTokenResult();
             processInventoryList(inventoryService.getMws().getMarketplace(), nextResult.getInventorySupplyList().getMember());
             nextToken = nextResult.getNextToken();
+        }
+    }
+
+    private void fetchInventoryBySellerSku(InventoryService inventoryService) {
+        for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED)) {
+            String market = entry.getMarket();
+            String sku = entry.getSku();
+            Pageable pageable = PageRequest.of(0, PAGE_SIZE);
+            Page<AmazonSellerSku> page = amazonSellerSkuRepository.findByMarketAndSku(market, sku, pageable);
+            processSellerSkuPage(market, inventoryService, page);
+            while (page.hasNext()) {
+                processSellerSkuPage(market, inventoryService, amazonSellerSkuRepository.findByMarketAndSku(market, sku, page.nextPageable()));
+            }
+        }
+    }
+
+    private void processSellerSkuPage(String market, InventoryService inventoryService, Page<AmazonSellerSku> page) {
+        if (!page.isEmpty()) {
+            List<String> sellerSkuList = page.stream().map(AmazonSellerSku::getSellerSku).collect(Collectors.toList());
+            List<InventorySupply> list = inventoryService
+                    .getListInventorySupplyResponseWithSku(new SellerSkuList(sellerSkuList))
+                    .getListInventorySupplyResult()
+                    .getInventorySupplyList()
+                    .getMember();
+            processInventoryList(market, list);
+
         }
     }
 
