@@ -190,23 +190,28 @@ public class AmazonFetcher {
     private void processInventoryList(String market, List<InventorySupply> list) {
         for (InventorySupply inventorySupply : list) {
             String fnSku = inventorySupply.getFNSKU();
-            AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, new Date(System.currentTimeMillis()));
-            if (amazonInventory == null) {
-                LOGGER.info("{} saving inventory: {}", market, fnSku);
-                amazonInventory = new AmazonInventory();
-                amazonInventory.setMarket(market);
-                amazonInventory.setFnSku(fnSku);
-                amazonInventory.setCreateDate(new Date(System.currentTimeMillis()));
+            String sellerSku = inventorySupply.getSellerSKU();
+            if (StringUtils.isNotEmpty(fnSku)) {
+                AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, new Date(System.currentTimeMillis()));
+                if (amazonInventory == null) {
+                    LOGGER.info("{} saving inventory: {}", market, sellerSku);
+                    amazonInventory = new AmazonInventory();
+                    amazonInventory.setMarket(market);
+                    amazonInventory.setFnSku(fnSku);
+                    amazonInventory.setCreateDate(new Date(System.currentTimeMillis()));
+                } else {
+                    LOGGER.info("{} updating inventory: {}", market, sellerSku);
+                }
+                LOGGER.debug("{} raw inventory: {}", market, Utils.getJsonString(inventorySupply));
+                amazonInventory.setAsin(inventorySupply.getASIN());
+                amazonInventory.setSellerSku(inventorySupply.getSellerSKU());
+                amazonInventory.setInStockQuantity(inventorySupply.getInStockSupplyQuantity());
+                amazonInventory.setTotalQuantity(inventorySupply.getTotalSupplyQuantity());
+                amazonInventory.setFulfillment(inventorySupply.getSellerSKU().contains("FBA") ? Utils.FULFILL_BY_FBA : Utils.FULFILL_NOT_FBA);
+                amazonInventoryRepository.save(amazonInventory);
             } else {
-                LOGGER.info("{} updating inventory: {}", market, fnSku);
+                LOGGER.warn("{} empty inventory: {}", market, sellerSku);
             }
-            LOGGER.debug("{} raw inventory: {}", market, Utils.getJsonString(inventorySupply));
-            amazonInventory.setAsin(inventorySupply.getASIN());
-            amazonInventory.setSellerSku(inventorySupply.getSellerSKU());
-            amazonInventory.setInStockQuantity(inventorySupply.getInStockSupplyQuantity());
-            amazonInventory.setTotalQuantity(inventorySupply.getTotalSupplyQuantity());
-            amazonInventory.setFulfillment(inventorySupply.getSellerSKU().contains("FBA") ? Utils.FULFILL_BY_FBA : Utils.FULFILL_NOT_FBA);
-            amazonInventoryRepository.save(amazonInventory);
         }
     }
 
