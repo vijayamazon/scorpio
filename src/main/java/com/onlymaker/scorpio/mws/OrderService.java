@@ -47,6 +47,11 @@ public class OrderService {
         return getListOrdersResponse(request);
     }
 
+    /**
+     * @see <a href="https://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrders.html">Orders_ListOrders.html</a>
+     * maximum request quota: 6
+     * restore rate: 1/min
+     */
     private ListOrdersResponse getListOrdersResponse(ListOrdersRequest request) {
         forceWaiting(FETCH_ORDER_INTERVAL_IN_MS);
         request.setSellerId(mws.getSellerId());
@@ -65,6 +70,11 @@ public class OrderService {
         return getClient().listOrdersByNextToken(request);
     }
 
+    /**
+     * @see <a href="https://docs.developer.amazonservices.com/en_US/orders-2013-09-01/Orders_ListOrderItems.html">Orders_ListOrderItems.html</a>
+     * maximum request quota: 30
+     * restore rate: 1/2s
+     */
     public ListOrderItemsResponse getListOrderItemsResponse(String orderId) {
         forceWaiting(FETCH_ORDER_ITEM_INTERVAL_IN_MS);
         ListOrderItemsRequest request = new ListOrderItemsRequest();

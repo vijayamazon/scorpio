@@ -11,11 +11,6 @@ import java.time.LocalDate;
 
 import static com.amazonservices.mws.FulfillmentInventory._2010_10_01.samples.ListInventorySupplySample.invokeListInventorySupply;
 
-/**
- * @see <a href="https://docs.developer.amazonservices.com/en_US/fba_inventory/FBAInventory_ListInventorySupply.html">FBAInventory_ListInventorySupply.html</a>
- * maximum request quota of 30
- * two requests every second
- */
 public class InventoryService {
     private static final long FETCH_INVENTORY_INTERVAL_IN_MS = 5000;
     /** The client, lazy initialized. Async client is also a sync client. */
@@ -39,6 +34,11 @@ public class InventoryService {
         return getClient().getServiceStatus(request);
     }
 
+    /**
+     * @see <a href="https://docs.developer.amazonservices.com/en_US/fba_inventory/FBAInventory_ListInventorySupply.html">FBAInventory_ListInventorySupply.html</a>
+     * maximum request quota: 30
+     * restore rate: 2/s
+     */
     public ListInventorySupplyResponse getListInventorySupplyResponse(ListInventorySupplyRequest request) {
         forceWaiting(FETCH_INVENTORY_INTERVAL_IN_MS);
         return invokeListInventorySupply(getClient(), request);

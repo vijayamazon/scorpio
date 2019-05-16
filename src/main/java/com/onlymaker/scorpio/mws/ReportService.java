@@ -27,9 +27,10 @@ public class ReportService {
     }
 
     /**
-     * @see <a href="http://docs.developer.amazonservices.com/en_US/reports/Reports_RequestReport.html">Request Report</a>
-     * less than 15 per minute
-     * less than 60 per hour
+     * @see <a href="http://docs.developer.amazonservices.com/en_US/reports/Reports_RequestReport.html">Reports_RequestReport</a>
+     * maximum request quota: 15
+     * restore rate: 1/min
+     * hourly request quota: 60
      */
     public RequestReportResponse requestReport(String reportType) throws MarketplaceWebServiceException {
         RequestReportRequest request = new RequestReportRequest();
@@ -41,10 +42,10 @@ public class ReportService {
     }
 
     /**
-     * less than 10 per minute
-     * less than 80 per hour
-     * @return
-     * @throws MarketplaceWebServiceException
+     * @see <a href="http://docs.developer.amazonservices.com/en_US/reports/Reports_GetReportRequestList.html">Reports_GetReportRequestList</a>
+     * maximum request quota: 10
+     * restore rate: 1/45s
+     * hourly request quota: 80
      */
     public GetReportListResponse getReportList(String reportType) throws MarketplaceWebServiceException {
         GetReportListRequest request = new GetReportListRequest();
