@@ -1,15 +1,16 @@
 package com.onlymaker.scorpio.task;
 
+import com.amazonaws.mws.model.GetReportRequest;
+import com.amazonaws.mws.model.GetReportRequestListResponse;
+import com.amazonaws.mws.model.ReportRequestInfo;
+import com.amazonaws.mws.model.RequestReportResponse;
 import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
 import com.amazonservices.mws.orders._2013_09_01.model.*;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
 import com.onlymaker.scorpio.data.*;
-import com.onlymaker.scorpio.mws.HtmlPageService;
-import com.onlymaker.scorpio.mws.InventoryService;
-import com.onlymaker.scorpio.mws.OrderService;
-import com.onlymaker.scorpio.mws.Utils;
+import com.onlymaker.scorpio.mws.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
@@ -52,6 +56,10 @@ public class AmazonFetcher {
     AmazonInventoryRepository amazonInventoryRepository;
     @Autowired
     AmazonSellerSkuRepository amazonSellerSkuRepository;
+    @Autowired
+    AmazonInventoryReportRepository amazonInventoryReportRepository;
+    @Autowired
+    AmazonReportLogRepository amazonReportLogRepository;
 
     @Scheduled(cron = "${fetcher.cron}")
     public void everyday() {
@@ -59,6 +67,7 @@ public class AmazonFetcher {
         fetchHtml();
         fetchMwsOrder();
         fetchMwsInventory();
+        fetchMwsInventoryReport();
     }
 
     private void fetchHtml() {
@@ -101,6 +110,75 @@ public class AmazonFetcher {
                 fetchInventoryBySellerSku(inventoryService);
             } catch (Throwable t) {
                 LOGGER.info("{} fetch inventory unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
+            }
+        }
+    }
+
+    private void fetchMwsInventoryReport() {
+        List<MarketWebService> list = amazon.getList();
+        for (MarketWebService mws : list) {
+            ReportService reportService = new ReportService(appInfo, mws);
+            try {
+                RequestReportResponse requestReportResponse = reportService.requestReport(ReportService.REPORT_TYPE.get("inventory"));
+                ReportRequestInfo requestInfo = requestReportResponse.getRequestReportResult().getReportRequestInfo();
+                LOGGER.info("Request inventory report, id: {}", requestInfo.getReportRequestId());
+                AmazonReportLog amazonReportLog = new AmazonReportLog();
+                amazonReportLog.setRequestId(requestInfo.getReportRequestId());
+                String generatedReportId = requestInfo.getGeneratedReportId();
+                amazonReportLog.setReportId(generatedReportId == null ? "" : generatedReportId);
+                amazonReportLog.setReportType(ReportService.REPORT_TYPE.get("inventory"));
+                amazonReportLog.setStatus(0);
+                amazonReportLogRepository.save(amazonReportLog);
+                Thread.sleep(300 * SECOND_IN_MS);
+                GetReportRequestListResponse reportRequestListResponse = reportService.getReportRequestList(ReportService.REPORT_TYPE.get("inventory"));
+                List<ReportRequestInfo> reportRequestInfos = reportRequestListResponse.getGetReportRequestListResult().getReportRequestInfoList();
+                for (ReportRequestInfo reportRequestInfo : reportRequestInfos) {
+                    switch (reportRequestInfo.getReportProcessingStatus()) {
+                        case "_SUBMITTED_":
+                        case "_IN_PROGRESS_":
+                            break;
+                        case "_CANCELLED_":
+                        case "_DONE_NO_DATA_":
+                        case "_DONE_":
+                            AmazonReportLog log = amazonReportLogRepository.findOneByRequestId(reportRequestInfo.getReportRequestId());
+                            if (log != null && log.getStatus() == 0) {
+                                log.setReportId(reportRequestInfo.getGeneratedReportId());
+                                log.setStatus(1);
+                                if (reportRequestInfo.getReportProcessingStatus().equals("_DONE_")) {
+                                    File report = new File("/tmp/report");
+                                    GetReportRequest request = reportService.prepareGetReport(log.getReportId(), new FileOutputStream(report));
+                                    reportService.getReport(request);
+                                    request.getReportOutputStream().close();
+                                    List<String> lines = Files.readAllLines(report.toPath());
+                                    for (String line : lines) {
+                                        LOGGER.debug("report line: {}", line);
+                                        if (!line.startsWith("sku")) {
+                                            String[] elements = line.split("\t");
+                                            String sellerSku = elements[0];
+                                            String asin = elements[1];
+                                            AmazonInventoryReport amazonInventoryReport = amazonInventoryReportRepository.findOneBySellerSku(sellerSku);
+                                            if (amazonInventoryReport == null) {
+                                                amazonInventoryReport = new AmazonInventoryReport();
+                                                amazonInventoryReport.setSellerSku(sellerSku);
+                                            } else {
+                                                if (!amazonInventoryReport.getAsin().equals(asin)) {
+                                                    LOGGER.warn("report sellerSku {} with different asin: {}, {}", sellerSku, amazonInventoryReport.getAsin(), asin);
+                                                }
+                                            }
+                                            amazonInventoryReport.setAsin(elements[1]);
+                                            amazonInventoryReport.setPrice((int)(Float.parseFloat(elements[2]) * 100));
+                                            amazonInventoryReport.setQuantity(elements.length == 4 ? Integer.parseInt(elements[3]) : 0);
+                                            amazonInventoryReport.setReportDate(new Date(System.currentTimeMillis()));
+                                            amazonInventoryReportRepository.save(amazonInventoryReport);
+                                        }
+                                    }
+                                }
+                                amazonReportLogRepository.save(log);
+                            }
+                    }
+                }
+            } catch (Throwable t) {
+                LOGGER.info("{} fetch inventory report error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -174,7 +252,6 @@ public class AmazonFetcher {
                     .getInventorySupplyList()
                     .getMember();
             processInventoryList(market, list);
-
         }
     }
 

@@ -16,6 +16,7 @@ public class ReportService {
     public static final Map<String, String> REPORT_TYPE = new HashMap<String, String>() {{
         put("order", "_GET_FLAT_FILE_ORDERS_DATA_");
         put("performance", "_GET_V1_SELLER_PERFORMANCE_REPORT_");
+        put("inventory", "_GET_FLAT_FILE_OPEN_LISTINGS_DATA_");
     }};
     private MarketplaceWebServiceClient client;
     private AppInfo appInfo;
@@ -43,6 +44,28 @@ public class ReportService {
 
     /**
      * @see <a href="http://docs.developer.amazonservices.com/en_US/reports/Reports_GetReportRequestList.html">Reports_GetReportRequestList</a>
+     * maximum request quota: 10
+     * restore rate: 1/45s
+     * hourly request quota: 80
+     */
+    public GetReportRequestListResponse getReportRequestList(String reportType) throws MarketplaceWebServiceException {
+        GetReportRequestListRequest request = new GetReportRequestListRequest();
+        request.setMerchant(mws.getSellerId());
+        request.setMWSAuthToken(mws.getAuthToken());
+        request.setReportTypeList(new TypeList(Arrays.asList(reportType)));
+        return getClient().getReportRequestList(request);
+    }
+
+    public GetReportRequestListByNextTokenResponse getReportRequstListByNextToken(String nextToken) throws MarketplaceWebServiceException {
+        GetReportRequestListByNextTokenRequest request = new GetReportRequestListByNextTokenRequest();
+        request.setMerchant(mws.getSellerId());
+        request.setNextToken(nextToken);
+        request.setMWSAuthToken(mws.getAuthToken());
+        return getClient().getReportRequestListByNextToken(request);
+    }
+
+    /**
+     * @see <a href="https://docs.developer.amazonservices.com/en_US/reports/Reports_GetReportList.html">Reports_GetReportList</a>
      * maximum request quota: 10
      * restore rate: 1/45s
      * hourly request quota: 80
