@@ -1,6 +1,7 @@
 package com.onlymaker.scorpio.data;
 
 import javax.persistence.*;
+import java.sql.Timestamp;
 
 @Entity
 @Table(name = "amazon_report_log")
@@ -22,6 +23,9 @@ public class AmazonReportLog {
 
     @Column(name = "status")
     private Integer status;
+
+    @Column(name = "create_time")
+    private Timestamp createTime;
 
     public Long getId() {
         return id;
@@ -61,5 +65,13 @@ public class AmazonReportLog {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Timestamp getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Timestamp createTime) {
+        this.createTime = createTime;
     }
 }

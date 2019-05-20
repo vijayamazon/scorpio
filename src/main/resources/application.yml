@@ -19,8 +19,7 @@ app:
 
 amazon:
   list:
-    - store: store
-      marketplace: marketplace
+    - marketplace: marketplace
       marketplace-id: marketplaceId
       marketplace-url: marketplaceUrl
       seller-id: sellerId

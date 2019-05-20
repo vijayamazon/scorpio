@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest(classes = Main.class)
 public class ReportServiceTest {
     private ReportService reportService;
-    private String reportType = ReportService.REPORT_TYPE.get("amazon_fulfilled");
+    private String reportType = ReportService.REPORT_TYPE.get("inventory");
     @Autowired
     AppInfo appInfo;
     @Autowired
@@ -47,6 +47,12 @@ public class ReportServiceTest {
     * submit:2019-05-20T03:15:52Z
     * requestId:62362018036
     * requestType:_GET_AMAZON_FULFILLED_SHIPMENTS_DATA_
+    * reportId:null
+    * status:_SUBMITTED_
+    *
+    * submit:2019-05-20T08:28:53Z
+    * requestId:62363018036
+    * requestType:_GET_FBA_MYI_UNSUPPRESSED_INVENTORY_DATA_
     * reportId:null
     * status:_SUBMITTED_
     */
@@ -74,7 +80,7 @@ public class ReportServiceTest {
         result.getReportRequestInfoList().forEach(r -> {
             System.out.println(r.getReportRequestId());
             System.out.println(r.getGeneratedReportId());
-            System.out.println(r.isSetReportProcessingStatus() ? r.getReportProcessingStatus() : "Status undefined");
+            System.out.println(r.getReportProcessingStatus());
         });
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
@@ -114,7 +120,7 @@ public class ReportServiceTest {
      */
     @Test
     public void getReport() throws MarketplaceWebServiceException, IOException {
-        String id = "14772907786018024";
+        String id = "14941905506018036";
         File report = new File("/tmp/report");
         GetReportRequest request = reportService.prepareGetReport(id, new FileOutputStream(report));
         GetReportResponse response = reportService.getReport(request);

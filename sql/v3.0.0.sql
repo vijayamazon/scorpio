@@ -115,21 +115,6 @@ create table amazon_seller_sku
   default charset = utf8mb4
   collate = utf8mb4_unicode_ci;
 
-drop table if exists amazon_inventory_report;
-create table amazon_inventory_report
-(
-    id          bigint unsigned primary key auto_increment,
-    asin        varchar(50) not null,
-    seller_sku  varchar(50) not null,
-    price       int         not null default 0,
-    quantity    int         not null default 0,
-    report_date date        not null,
-    unique index (seller_sku),
-    index (asin)
-) engine = InnoDB
-  default charset = utf8mb4
-  collate = utf8mb4_unicode_ci;
-
 drop table if exists amazon_report_log;
 create table amazon_report_log
 (
