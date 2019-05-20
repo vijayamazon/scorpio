@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest(classes = Main.class)
 public class ReportServiceTest {
     private ReportService reportService;
+    private String reportType = ReportService.REPORT_TYPE.get("amazon_fulfilled");
     @Autowired
     AppInfo appInfo;
     @Autowired
@@ -42,10 +43,16 @@ public class ReportServiceTest {
     * requestType:_GET_FLAT_FILE_OPEN_LISTINGS_DATA_
     * reportId:null
     * status:_SUBMITTED_
+    *
+    * submit:2019-05-20T03:15:52Z
+    * requestId:62362018036
+    * requestType:_GET_AMAZON_FULFILLED_SHIPMENTS_DATA_
+    * reportId:null
+    * status:_SUBMITTED_
     */
     @Test
     public void requestReport() throws MarketplaceWebServiceException {
-        ReportRequestInfo info = reportService.requestReport(ReportService.REPORT_TYPE.get("inventory")).getRequestReportResult().getReportRequestInfo();
+        ReportRequestInfo info = reportService.requestReport(reportType).getRequestReportResult().getReportRequestInfo();
         System.out.println("submit:" + info.getSubmittedDate());
         System.out.println("requestId:" + info.getReportRequestId());
         System.out.println("requestType:" + info.getReportType());
@@ -63,7 +70,7 @@ public class ReportServiceTest {
      */
     @Test
     public void requestReportList() throws MarketplaceWebServiceException {
-        GetReportRequestListResult result = reportService.getReportRequestList(ReportService.REPORT_TYPE.get("inventory")).getGetReportRequestListResult();
+        GetReportRequestListResult result = reportService.getReportRequestList(reportType).getGetReportRequestListResult();
         result.getReportRequestInfoList().forEach(r -> {
             System.out.println(r.getReportRequestId());
             System.out.println(r.getGeneratedReportId());
@@ -86,7 +93,7 @@ public class ReportServiceTest {
      */
     @Test
     public void reportList() throws MarketplaceWebServiceException, InterruptedException {
-        GetReportListResponse response = reportService.getReportList(ReportService.REPORT_TYPE.get("inventory"));
+        GetReportListResponse response = reportService.getReportList(reportType);
         GetReportListResult result = response.getGetReportListResult();
         printReportInfo(result.getReportInfoList());
         String nextToken = result.getNextToken();
@@ -107,7 +114,7 @@ public class ReportServiceTest {
      */
     @Test
     public void getReport() throws MarketplaceWebServiceException, IOException {
-        String id = "14895932402018033";
+        String id = "14772907786018024";
         File report = new File("/tmp/report");
         GetReportRequest request = reportService.prepareGetReport(id, new FileOutputStream(report));
         GetReportResponse response = reportService.getReport(request);

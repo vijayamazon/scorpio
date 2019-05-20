@@ -17,6 +17,7 @@ public class ReportService {
         put("order", "_GET_FLAT_FILE_ORDERS_DATA_");
         put("performance", "_GET_V1_SELLER_PERFORMANCE_REPORT_");
         put("inventory", "_GET_FLAT_FILE_OPEN_LISTINGS_DATA_");
+        put("amazon_fulfilled", "_GET_AMAZON_FULFILLED_SHIPMENTS_DATA_");
     }};
     private MarketplaceWebServiceClient client;
     private AppInfo appInfo;
