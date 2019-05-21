@@ -8,9 +8,7 @@ import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
 
 import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ReportService {
     public static final Map<String, String> REPORT_TYPE = new HashMap<String, String>() {{
@@ -54,6 +52,19 @@ public class ReportService {
         request.setMerchant(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
         request.setReportTypeList(new TypeList(Arrays.asList(reportType)));
+        return getClient().getReportRequestList(request);
+    }
+
+    public GetReportRequestListResponse getReportRequestListCompleted(String reportType) throws MarketplaceWebServiceException {
+        GetReportRequestListRequest request = new GetReportRequestListRequest();
+        request.setMerchant(mws.getSellerId());
+        request.setMWSAuthToken(mws.getAuthToken());
+        request.setReportTypeList(new TypeList(Arrays.asList(reportType)));
+        List<String> completedStatus = new ArrayList<>();
+        completedStatus.add("_CANCELLED_");
+        completedStatus.add("_DONE_");
+        completedStatus.add("_DONE_NO_DATA_");
+        request.setReportProcessingStatusList(new StatusList(completedStatus));
         return getClient().getReportRequestList(request);
     }
 

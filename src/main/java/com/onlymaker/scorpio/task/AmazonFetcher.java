@@ -131,61 +131,51 @@ public class AmazonFetcher {
                 amazonReportLog.setCreateTime(new Timestamp(requestInfo.getSubmittedDate().toGregorianCalendar().getTimeInMillis()));
                 amazonReportLogRepository.save(amazonReportLog);
                 Thread.sleep(300 * SECOND_IN_MS);
-                GetReportRequestListResponse reportRequestListResponse = reportService.getReportRequestList(ReportService.REPORT_TYPE.get("inventory"));
+                GetReportRequestListResponse reportRequestListResponse = reportService.getReportRequestListCompleted(ReportService.REPORT_TYPE.get("inventory"));
                 List<ReportRequestInfo> reportRequestInfos = reportRequestListResponse.getGetReportRequestListResult().getReportRequestInfoList();
                 for (ReportRequestInfo reportRequestInfo : reportRequestInfos) {
                     AmazonReportLog log = amazonReportLogRepository.findOneByRequestIdAndStatus(reportRequestInfo.getReportRequestId(), 0);
                     if (log != null) {
                         String reportId = reportRequestInfo.getGeneratedReportId();
-                        switch (reportRequestInfo.getReportProcessingStatus()) {
-                            case "_SUBMITTED_":
-                            case "_IN_PROGRESS_":
-                                break;
-                            case "_CANCELLED_":
-                            case "_DONE_NO_DATA_":
-                                log.setReportId(reportId);
-                                log.setStatus(1);
-                                amazonReportLogRepository.save(log);
-                                break;
-                            case "_DONE_":
-                                File report = new File("/tmp/report");
-                                GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
-                                reportService.getReport(request);
-                                request.getReportOutputStream().close();
-                                Map<String, Integer> fields = new HashMap<>();
-                                List<String> lines = Files.readAllLines(report.toPath());
-                                for (String line : lines) {
-                                    LOGGER.debug("report line: {}", line);
-                                    String[] elements = line.split("\t");
-                                    //sku	fnsku	asin	product-name	condition	your-price	mfn-listing-exists	mfn-fulfillable-quantity	afn-listing-exists	afn-warehouse-quantity	afn-fulfillable-quantity	afn-unsellable-quantity	afn-reserved-quantity	afn-total-quantity	per-unit-volume	afn-inbound-working-quantity	afn-inbound-shipped-quantity	afn-inbound-receiving-quantity
-                                    if (line.startsWith("sku")) {
-                                        for (int i = 0; i < elements.length; i++) {
-                                            fields.put(elements[i], i);
-                                        }
-                                    } else {
-                                        String market = mws.getMarketplace();
-                                        String fnSku = elements[fields.get("fnsku")];
-                                        Date date = new Date(log.getCreateTime().getTime());
-                                        AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, date);
-                                        if (amazonInventory == null) {
-                                            amazonInventory = new AmazonInventory();
-                                            amazonInventory.setMarket(market);
-                                            amazonInventory.setFnSku(fnSku);
-                                            amazonInventory.setCreateDate(date);
-                                            amazonInventory.setAsin(elements[fields.get("asin")]);
-                                            amazonInventory.setSellerSku(elements[fields.get("sku")]);
-                                            amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
-                                            amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
-                                            amazonInventory.setFulfillment(Utils.FULFILL_BY_FBA);
-                                            amazonInventoryRepository.save(amazonInventory);
-                                            LOGGER.info("{} saving inventory: {}", market, amazonInventory.getSellerSku());
-                                        }
+                        if (reportRequestInfo.getReportProcessingStatus().equals("_DONE_")) {
+                            File report = new File("/tmp/report");
+                            GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
+                            reportService.getReport(request);
+                            request.getReportOutputStream().close();
+                            Map<String, Integer> fields = new HashMap<>();
+                            List<String> lines = Files.readAllLines(report.toPath());
+                            for (String line : lines) {
+                                LOGGER.debug("report line: {}", line);
+                                String[] elements = line.split("\t");
+                                //sku	fnsku	asin	product-name	condition	your-price	mfn-listing-exists	mfn-fulfillable-quantity	afn-listing-exists	afn-warehouse-quantity	afn-fulfillable-quantity	afn-unsellable-quantity	afn-reserved-quantity	afn-total-quantity	per-unit-volume	afn-inbound-working-quantity	afn-inbound-shipped-quantity	afn-inbound-receiving-quantity
+                                if (line.startsWith("sku")) {
+                                    for (int i = 0; i < elements.length; i++) {
+                                        fields.put(elements[i], i);
+                                    }
+                                } else {
+                                    String market = mws.getMarketplace();
+                                    String fnSku = elements[fields.get("fnsku")];
+                                    Date date = new Date(log.getCreateTime().getTime());
+                                    AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, date);
+                                    if (amazonInventory == null) {
+                                        amazonInventory = new AmazonInventory();
+                                        amazonInventory.setMarket(market);
+                                        amazonInventory.setFnSku(fnSku);
+                                        amazonInventory.setCreateDate(date);
+                                        amazonInventory.setAsin(elements[fields.get("asin")]);
+                                        amazonInventory.setSellerSku(elements[fields.get("sku")]);
+                                        amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
+                                        amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
+                                        amazonInventory.setFulfillment(Utils.FULFILL_BY_FBA);
+                                        amazonInventoryRepository.save(amazonInventory);
+                                        LOGGER.info("{} saving inventory: {}", market, amazonInventory.getSellerSku());
                                     }
                                 }
-                                log.setReportId(reportId);
-                                log.setStatus(1);
-                                amazonReportLogRepository.save(log);
+                            }
                         }
+                        log.setReportId(reportId);
+                        log.setStatus(1);
+                        amazonReportLogRepository.save(log);
                     }
                 }
             } catch (Throwable t) {
