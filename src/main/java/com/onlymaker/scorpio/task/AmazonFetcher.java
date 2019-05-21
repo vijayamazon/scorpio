@@ -168,6 +168,7 @@ public class AmazonFetcher {
                                         Date date = new Date(log.getCreateTime().getTime());
                                         AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, date);
                                         if (amazonInventory == null) {
+                                            amazonInventory = new AmazonInventory();
                                             amazonInventory.setMarket(market);
                                             amazonInventory.setFnSku(fnSku);
                                             amazonInventory.setCreateDate(date);
