@@ -136,18 +136,20 @@ public class AmazonFetcher {
                 for (ReportRequestInfo reportRequestInfo : reportRequestInfos) {
                     AmazonReportLog log = amazonReportLogRepository.findOneByRequestIdAndStatus(reportRequestInfo.getReportRequestId(), 0);
                     if (log != null) {
+                        String reportId = reportRequestInfo.getGeneratedReportId();
                         switch (reportRequestInfo.getReportProcessingStatus()) {
                             case "_SUBMITTED_":
                             case "_IN_PROGRESS_":
                                 break;
                             case "_CANCELLED_":
                             case "_DONE_NO_DATA_":
+                                log.setReportId(reportId);
                                 log.setStatus(1);
                                 amazonReportLogRepository.save(log);
                                 break;
                             case "_DONE_":
                                 File report = new File("/tmp/report");
-                                GetReportRequest request = reportService.prepareGetReport(log.getReportId(), new FileOutputStream(report));
+                                GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
                                 reportService.getReport(request);
                                 request.getReportOutputStream().close();
                                 Map<String, Integer> fields = new HashMap<>();
@@ -179,7 +181,7 @@ public class AmazonFetcher {
                                         }
                                     }
                                 }
-                                log.setReportId(reportRequestInfo.getGeneratedReportId());
+                                log.setReportId(reportId);
                                 log.setStatus(1);
                                 amazonReportLogRepository.save(log);
                         }
