@@ -4,21 +4,20 @@ import com.amazonaws.mws.model.GetReportRequest;
 import com.amazonaws.mws.model.GetReportRequestListResponse;
 import com.amazonaws.mws.model.ReportRequestInfo;
 import com.amazonaws.mws.model.RequestReportResponse;
-import com.amazonservices.mws.FulfillmentInventory._2010_10_01.model.*;
 import com.amazonservices.mws.orders._2013_09_01.model.*;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
 import com.onlymaker.scorpio.data.*;
-import com.onlymaker.scorpio.mws.*;
+import com.onlymaker.scorpio.mws.HtmlPageService;
+import com.onlymaker.scorpio.mws.OrderService;
+import com.onlymaker.scorpio.mws.ReportService;
+import com.onlymaker.scorpio.mws.Utils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -31,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 public class AmazonFetcher {
@@ -64,20 +62,21 @@ public class AmazonFetcher {
     @Scheduled(cron = "${fetcher.cron}")
     public void everyday() {
         LOGGER.info("run fetch task ...");
+        requestInventoryReport();
         fetchHtml();
-        fetchMwsOrder();
-        //fetchMwsInventory();
-        fetchMwsInventoryReport();
+        fetchInventoryReport();
+        fetchOrder();
     }
 
     private void fetchHtml() {
-        String prev = "";
-        for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED)) {
+        String identity = "";
+        Iterable<AmazonEntry> iterable = amazonEntryRepository.findAllByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED);
+        for (AmazonEntry entry : iterable) {
             try {
-                if (!Objects.equals(prev, entry.getMarket() + entry.getAsin())) {
+                if (!Objects.equals(identity, entry.getMarket() + entry.getAsin())) {
                     amazonEntrySnapshotRepository.save(htmlPageService.parse(entry));
                 }
-                prev = entry.getMarket() + entry.getAsin();
+                identity = entry.getMarket() + entry.getAsin();
                 Thread.sleep(SECOND_IN_MS);
             } catch (Throwable t) {
                 LOGGER.info("{} fetch html unexpected error: {}", entry.getMarket(), t, t.getMessage(), t);
@@ -85,7 +84,7 @@ public class AmazonFetcher {
         }
     }
 
-    private void fetchMwsOrder() {
+    private void fetchOrder() {
         List<MarketWebService> list = amazon.getList();
         for (MarketWebService mws : list) {
             OrderService orderService = new OrderService(appInfo, mws);
@@ -102,19 +101,7 @@ public class AmazonFetcher {
         }
     }
 
-    private void fetchMwsInventory() {
-        List<MarketWebService> list = amazon.getList();
-        for (MarketWebService mws : list) {
-            InventoryService inventoryService = new InventoryService(appInfo, mws);
-            try {
-                fetchInventoryBySellerSku(inventoryService);
-            } catch (Throwable t) {
-                LOGGER.info("{} fetch inventory unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
-            }
-        }
-    }
-
-    private void fetchMwsInventoryReport() {
+    private void requestInventoryReport() {
         List<MarketWebService> list = amazon.getList();
         for (MarketWebService mws : list) {
             ReportService reportService = new ReportService(appInfo, mws);
@@ -130,7 +117,17 @@ public class AmazonFetcher {
                 amazonReportLog.setStatus(0);
                 amazonReportLog.setCreateTime(new Timestamp(requestInfo.getSubmittedDate().toGregorianCalendar().getTimeInMillis()));
                 amazonReportLogRepository.save(amazonReportLog);
-                Thread.sleep(300 * SECOND_IN_MS);
+            } catch (Throwable t) {
+                LOGGER.info("{} request inventory report error: {}", mws.getMarketplace(), t.getMessage(), t);
+            }
+        }
+    }
+
+    private void fetchInventoryReport() {
+        List<MarketWebService> list = amazon.getList();
+        for (MarketWebService mws : list) {
+            ReportService reportService = new ReportService(appInfo, mws);
+            try {
                 GetReportRequestListResponse reportRequestListResponse = reportService.getReportRequestListCompleted(ReportService.REPORT_TYPE.get("inventory"));
                 List<ReportRequestInfo> reportRequestInfos = reportRequestListResponse.getGetReportRequestListResult().getReportRequestInfoList();
                 for (ReportRequestInfo reportRequestInfo : reportRequestInfos) {
@@ -217,45 +214,6 @@ public class AmazonFetcher {
         }
     }
 
-    @Deprecated
-    // Query inventory by date only return the stock changed since the day
-    private void fetchInventory(InventoryService inventoryService) {
-        ListInventorySupplyRequest request = inventoryService.buildRequestWithinLastDay();
-        ListInventorySupplyResponse response = inventoryService.getListInventorySupplyResponse(request);
-        processInventoryList(inventoryService.getMws().getMarketplace(), response.getListInventorySupplyResult().getInventorySupplyList().getMember());
-        String nextToken = response.getListInventorySupplyResult().getNextToken();
-        while (StringUtils.isNotEmpty(nextToken)) {
-            ListInventorySupplyByNextTokenResult nextResult = inventoryService.getListInventorySupplyByNextTokenResponse(nextToken).getListInventorySupplyByNextTokenResult();
-            processInventoryList(inventoryService.getMws().getMarketplace(), nextResult.getInventorySupplyList().getMember());
-            nextToken = nextResult.getNextToken();
-        }
-    }
-
-    private void fetchInventoryBySellerSku(InventoryService inventoryService) {
-        for (AmazonEntry entry : amazonEntryRepository.findAllByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED)) {
-            String market = entry.getMarket();
-            String sku = entry.getSku();
-            Pageable pageable = PageRequest.of(0, PAGE_SIZE);
-            Page<AmazonSellerSku> page = amazonSellerSkuRepository.findByMarketAndSku(market, sku, pageable);
-            processSellerSkuPage(market, inventoryService, page);
-            while (page.hasNext()) {
-                processSellerSkuPage(market, inventoryService, amazonSellerSkuRepository.findByMarketAndSku(market, sku, page.nextPageable()));
-            }
-        }
-    }
-
-    private void processSellerSkuPage(String market, InventoryService inventoryService, Page<AmazonSellerSku> page) {
-        if (!page.isEmpty()) {
-            List<String> sellerSkuList = page.stream().map(AmazonSellerSku::getSellerSku).collect(Collectors.toList());
-            List<InventorySupply> list = inventoryService
-                    .getListInventorySupplyResponseWithSku(new SellerSkuList(sellerSkuList))
-                    .getListInventorySupplyResult()
-                    .getInventorySupplyList()
-                    .getMember();
-            processInventoryList(market, list);
-        }
-    }
-
     private void processOrderList(OrderService orderService, List<Order> list) {
         for (Order order : list) {
             AmazonOrder amazonOrder = saveOrder(orderService.getMws().getMarketplace(), order);
@@ -265,37 +223,9 @@ public class AmazonFetcher {
         }
     }
 
-    private void processInventoryList(String market, List<InventorySupply> list) {
-        for (InventorySupply inventorySupply : list) {
-            String fnSku = inventorySupply.getFNSKU();
-            String sellerSku = inventorySupply.getSellerSKU();
-            if (StringUtils.isNotEmpty(fnSku)) {
-                AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, new Date(System.currentTimeMillis()));
-                if (amazonInventory == null) {
-                    LOGGER.info("{} saving inventory: {}", market, sellerSku);
-                    amazonInventory = new AmazonInventory();
-                    amazonInventory.setMarket(market);
-                    amazonInventory.setFnSku(fnSku);
-                    amazonInventory.setCreateDate(new Date(System.currentTimeMillis()));
-                } else {
-                    LOGGER.info("{} updating inventory: {}", market, sellerSku);
-                }
-                LOGGER.debug("{} raw inventory: {}", market, Utils.getJsonString(inventorySupply));
-                amazonInventory.setAsin(inventorySupply.getASIN());
-                amazonInventory.setSellerSku(inventorySupply.getSellerSKU());
-                amazonInventory.setInStockQuantity(inventorySupply.getInStockSupplyQuantity());
-                amazonInventory.setTotalQuantity(inventorySupply.getTotalSupplyQuantity());
-                amazonInventory.setFulfillment(inventorySupply.getSellerSKU().contains("FBA") ? Utils.FULFILL_BY_FBA : Utils.FULFILL_NOT_FBA);
-                amazonInventoryRepository.save(amazonInventory);
-            } else {
-                LOGGER.warn("{} empty inventory: {}", market, sellerSku);
-            }
-        }
-    }
-
     private AmazonOrder saveOrder(String market, Order order) {
         AmazonOrder amazonOrder = amazonOrderRepository.findByAmazonOrderId(order.getAmazonOrderId());
-        if (amazonOrder == null){
+        if (amazonOrder == null) {
             LOGGER.info("{} saving order: {}, {}", market, order.getAmazonOrderId(), order.getOrderStatus());
             amazonOrder = new AmazonOrder();
             amazonOrder.setMarket(market);
