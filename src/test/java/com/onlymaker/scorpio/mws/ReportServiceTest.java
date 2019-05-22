@@ -9,6 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mozilla.universalchardet.UniversalDetector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -16,6 +17,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -34,7 +36,7 @@ public class ReportServiceTest {
 
     @Before
     public void setup() {
-        reportService = new ReportService(appInfo, amazon.getList().get(0));
+        reportService = new ReportService(appInfo, amazon.getList().get(1));
     }
 
     /*
@@ -120,13 +122,21 @@ public class ReportServiceTest {
      */
     @Test
     public void getReport() throws MarketplaceWebServiceException, IOException {
-        String id = "14941905506018036";
+        //String id = "14970262470018038";
+        String id = "14963427496018038";
         File report = new File("/tmp/report");
         GetReportRequest request = reportService.prepareGetReport(id, new FileOutputStream(report));
         GetReportResponse response = reportService.getReport(request);
         System.out.println(response.getResponseHeaderMetadata());
         request.getReportOutputStream().close();
-        System.out.println(new String(Files.readAllBytes(report.toPath())));
+        String encoding = UniversalDetector.detectCharset(report);
+        if (encoding != null) {
+            System.out.println("Detect encoding: " + encoding);
+            Files.readAllLines(report.toPath(), Charset.forName(encoding)).forEach(System.out::println);
+        } else {
+            System.out.println("Default encoding: " + Charset.defaultCharset());
+            Files.readAllLines(report.toPath()).forEach(System.out::println);
+        }
     }
 
     @Test

@@ -14,6 +14,7 @@ import com.onlymaker.scorpio.mws.OrderService;
 import com.onlymaker.scorpio.mws.ReportService;
 import com.onlymaker.scorpio.mws.Utils;
 import org.apache.commons.lang3.StringUtils;
+import org.mozilla.universalchardet.UniversalDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -139,8 +141,16 @@ public class AmazonFetcher {
                             GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
                             reportService.getReport(request);
                             request.getReportOutputStream().close();
+                            List<String> lines;
                             Map<String, Integer> fields = new HashMap<>();
-                            List<String> lines = Files.readAllLines(report.toPath());
+                            String encoding = UniversalDetector.detectCharset(report);
+                            if (encoding != null) {
+                                LOGGER.debug("{} inventory report detect encoding: {}", mws.getMarketplace(), encoding);
+                                lines = Files.readAllLines(report.toPath(), Charset.forName(encoding));
+                            } else {
+                                LOGGER.debug("{} inventory report default encoding: {}", mws.getMarketplace(), Charset.defaultCharset());
+                                lines = Files.readAllLines(report.toPath());
+                            }
                             for (String line : lines) {
                                 LOGGER.debug("report line: {}", line);
                                 String[] elements = line.split("\t");

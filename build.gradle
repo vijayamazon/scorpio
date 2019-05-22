@@ -18,7 +18,7 @@ repositories {
 
 ext {
     APP = 'scorpio'
-    VERSION = '3.0.3'
+    VERSION = '3.0.4'
 }
 
 bootJar {
@@ -35,6 +35,7 @@ dependencies {
             'org.apache.httpcomponents:httpclient:4.5.8',
             'org.apache.commons:commons-lang3:3.8.1',
             'org.jsoup:jsoup:1.11.3',
+            'com.github.albfernandez:juniversalchardet:2.3.0',
             fileTree(dir: 'libs', include: ['*.jar'])
     )
 
