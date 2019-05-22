@@ -6,10 +6,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Utils {
     public static String FULFILL_BY_FBA = "AFN";
     public static String FULFILL_NOT_FBA = "MFN";
+    public static Pattern SELLER_SKU = Pattern.compile("(?<sku>\\w*\\d+\\w*)-.*(?<size>US\\d+|UK\\d+|EU\\d+)");
 
     public static XMLGregorianCalendar getXMLGregorianCalendar(LocalDate date) {
         XMLGregorianCalendar result = MwsUtl.getDTF().newXMLGregorianCalendar();
@@ -30,5 +35,18 @@ public class Utils {
             e.printStackTrace();
             return "{}";
         }
+    }
+
+    public static Map<String, String> parseSellerSku(String sellerSku) {
+        Map<String, String> map = new HashMap<>();
+        Matcher matcher = SELLER_SKU.matcher(sellerSku.toUpperCase());
+        if (matcher.find()) {
+            map.put("sku", matcher.group("sku"));
+            map.put("size", matcher.group("size"));
+        } else {
+            map.put("sku", "");
+            map.put("size", "");
+        }
+        return map;
     }
 }

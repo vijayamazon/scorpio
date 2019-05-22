@@ -24,6 +24,12 @@ public class AmazonInventory {
     @Column(name = "seller_sku")
     private String sellerSku;
 
+    @Column(name = "sku")
+    private String sku;
+
+    @Column(name = "size")
+    private String size;
+
     @Column(name = "in_stock_quantity")
     private Integer inStockQuantity;
 
@@ -74,6 +80,22 @@ public class AmazonInventory {
 
     public void setSellerSku(String sellerSku) {
         this.sellerSku = sellerSku;
+    }
+
+    public String getSku() {
+        return sku;
+    }
+
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
+
+    public String getSize() {
+        return size;
+    }
+
+    public void setSize(String size) {
+        this.size = size;
     }
 
     public Integer getInStockQuantity() {

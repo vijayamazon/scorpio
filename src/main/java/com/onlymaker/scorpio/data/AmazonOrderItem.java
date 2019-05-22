@@ -39,6 +39,12 @@ public class AmazonOrderItem {
     @Column(name = "seller_sku")
     private String sellerSku;
 
+    @Column(name = "sku")
+    private String sku;
+
+    @Column(name = "size")
+    private String size;
+
     @Column(name = "data")
     private String data;
 
@@ -123,6 +129,22 @@ public class AmazonOrderItem {
 
     public void setSellerSku(String sellerSku) {
         this.sellerSku = sellerSku;
+    }
+
+    public String getSku() {
+        return sku;
+    }
+
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
+
+    public String getSize() {
+        return size;
+    }
+
+    public void setSize(String size) {
+        this.size = size;
     }
 
     public String getData() {

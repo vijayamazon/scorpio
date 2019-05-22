@@ -37,7 +37,6 @@ import java.util.Objects;
 public class AmazonFetcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonFetcher.class);
     private static final long SECOND_IN_MS = 1000;
-    private static final int PAGE_SIZE = 50;
     @Value("${fetcher.order.retrospect.days}")
     Long orderRetrospectDays;
     @Autowired
@@ -56,8 +55,6 @@ public class AmazonFetcher {
     AmazonOrderItemRepository amazonOrderItemRepository;
     @Autowired
     AmazonInventoryRepository amazonInventoryRepository;
-    @Autowired
-    AmazonSellerSkuRepository amazonSellerSkuRepository;
     @Autowired
     AmazonReportLogRepository amazonReportLogRepository;
 
@@ -162,6 +159,8 @@ public class AmazonFetcher {
                                 } else {
                                     String market = mws.getMarketplace();
                                     String fnSku = elements[fields.get("fnsku")];
+                                    String sellerSku = elements[fields.get("sku")];
+                                    Map<String, String> map = Utils.parseSellerSku(sellerSku);
                                     Date date = new Date(log.getCreateTime().getTime());
                                     AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, date);
                                     if (amazonInventory == null) {
@@ -170,7 +169,9 @@ public class AmazonFetcher {
                                         amazonInventory.setFnSku(fnSku);
                                         amazonInventory.setCreateDate(date);
                                         amazonInventory.setAsin(elements[fields.get("asin")]);
-                                        amazonInventory.setSellerSku(elements[fields.get("sku")]);
+                                        amazonInventory.setSellerSku(sellerSku);
+                                        amazonInventory.setSku(map.get("sku"));
+                                        amazonInventory.setSize(map.get("size"));
                                         amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
                                         amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
                                         amazonInventory.setFulfillment(Utils.FULFILL_BY_FBA);
@@ -255,6 +256,7 @@ public class AmazonFetcher {
 
     private void saveOrderItem(AmazonOrder order, OrderItem orderItem) {
         LOGGER.info("{} saving orderItem: {}, {}", order.getMarket(), order.getAmazonOrderId(), orderItem.getOrderItemId());
+        Map<String, String> map = Utils.parseSellerSku(orderItem.getSellerSKU());
         AmazonOrderItem amazonOrderItem = new AmazonOrderItem();
         amazonOrderItem.setMarket(order.getMarket());
         amazonOrderItem.setAmazonOrderId(order.getAmazonOrderId());
@@ -265,6 +267,8 @@ public class AmazonFetcher {
         amazonOrderItem.setQuantity(orderItem.getQuantityOrdered());
         amazonOrderItem.setAsin(orderItem.getASIN());
         amazonOrderItem.setSellerSku(orderItem.getSellerSKU());
+        amazonOrderItem.setSku(map.get("sku"));
+        amazonOrderItem.setSize(map.get("size"));
         amazonOrderItem.setData(Utils.getJsonString(orderItem));
         amazonOrderItem.setCreateTime(new Timestamp(System.currentTimeMillis()));
         amazonOrderItemRepository.save(amazonOrderItem);
