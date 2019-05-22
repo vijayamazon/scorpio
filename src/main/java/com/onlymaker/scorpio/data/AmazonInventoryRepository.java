@@ -9,4 +9,5 @@ import java.sql.Date;
 public interface AmazonInventoryRepository extends CrudRepository<AmazonInventory, Long> {
     AmazonInventory findByMarketAndFnSkuAndCreateDate(String market, String fnSku, Date date);
     Page<AmazonInventory> findByCreateDateBefore(Date date, Pageable pageable);
+    Page<AmazonInventory> findBySku(String sku, Pageable pageable);
 }

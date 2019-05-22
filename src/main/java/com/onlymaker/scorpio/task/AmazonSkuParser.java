@@ -16,8 +16,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.util.Map;
 
 @Service
@@ -33,25 +31,24 @@ public class AmazonSkuParser {
     @Autowired
     AmazonInventoryRepository amazonInventoryRepository;
 
-    @Scheduled(cron = "0 30 10 22 5 ?")
+    @Scheduled(cron = "0 0 16 22 5 ?")
     public void parse() {
         LOGGER.info("parse seller sku ...");
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         Pageable orderPageable = PageRequest.of(0, PAGE_SIZE);
-        Page<AmazonOrderItem> orderPage = amazonOrderItemRepository.findByCreateTimeBefore(timestamp, orderPageable);
+        Page<AmazonOrderItem> orderPage = amazonOrderItemRepository.findBySku("", orderPageable);
         LOGGER.debug("parse order sku, total page {}", orderPage.getTotalPages());
         parseOrderPage(orderPage);
         while (orderPage.hasNext()) {
-            orderPage = amazonOrderItemRepository.findByCreateTimeBefore(timestamp, orderPage.nextPageable());
+            orderPage = amazonOrderItemRepository.findBySku("", orderPage.nextPageable());
             parseOrderPage(orderPage);
         }
 
         Pageable inventoryPageable = PageRequest.of(0, PAGE_SIZE);
-        Page<AmazonInventory> inventoryPage = amazonInventoryRepository.findByCreateDateBefore(new Date(timestamp.getTime()), inventoryPageable);
+        Page<AmazonInventory> inventoryPage = amazonInventoryRepository.findBySku("", inventoryPageable);
         LOGGER.debug("parse inventory sku, total page {}", inventoryPage.getTotalPages());
         parseInventoryPage(inventoryPage);
         while (inventoryPage.hasNext()) {
-            inventoryPage = amazonInventoryRepository.findByCreateDateBefore(new Date(timestamp.getTime()), inventoryPage.nextPageable());
+            inventoryPage = amazonInventoryRepository.findBySku("", inventoryPage.nextPageable());
             parseInventoryPage(inventoryPage);
         }
     }

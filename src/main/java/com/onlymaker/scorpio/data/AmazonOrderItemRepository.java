@@ -9,4 +9,6 @@ import java.sql.Timestamp;
 public interface AmazonOrderItemRepository extends CrudRepository<AmazonOrderItem, Long> {
     AmazonOrderItem findByAmazonOrderItemId(String amazonOrderItemId);
     Page<AmazonOrderItem> findByCreateTimeBefore(Timestamp timestamp, Pageable pageable);
+    Page<AmazonOrderItem> findBySku(String sku, Pageable pageable);
+
 }
