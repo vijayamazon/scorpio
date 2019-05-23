@@ -57,6 +57,8 @@ public class AmazonFetcher {
     AmazonInventoryRepository amazonInventoryRepository;
     @Autowired
     AmazonReportLogRepository amazonReportLogRepository;
+    @Autowired
+    AmazonSellerSkuRepository amazonSellerSkuRepository;
 
     @Scheduled(cron = "${fetcher.cron}")
     public void everyday() {
@@ -255,10 +257,12 @@ public class AmazonFetcher {
     }
 
     private void saveOrderItem(AmazonOrder order, OrderItem orderItem) {
-        LOGGER.info("{} saving orderItem: {}, {}", order.getMarket(), order.getAmazonOrderId(), orderItem.getOrderItemId());
-        Map<String, String> map = Utils.parseSellerSku(orderItem.getSellerSKU());
+        String market = order.getMarket();
+        String sellerSku = orderItem.getSellerSKU();
+        LOGGER.info("{} saving orderItem: {}, {}", market, order.getAmazonOrderId(), orderItem.getOrderItemId());
+        Map<String, String> map = Utils.parseSellerSku(sellerSku);
         AmazonOrderItem amazonOrderItem = new AmazonOrderItem();
-        amazonOrderItem.setMarket(order.getMarket());
+        amazonOrderItem.setMarket(market);
         amazonOrderItem.setAmazonOrderId(order.getAmazonOrderId());
         amazonOrderItem.setStatus(order.getStatus());
         amazonOrderItem.setFulfillment(order.getFulfillment());
@@ -266,11 +270,23 @@ public class AmazonFetcher {
         amazonOrderItem.setAmazonOrderItemId(orderItem.getOrderItemId());
         amazonOrderItem.setQuantity(orderItem.getQuantityOrdered());
         amazonOrderItem.setAsin(orderItem.getASIN());
-        amazonOrderItem.setSellerSku(orderItem.getSellerSKU());
+        amazonOrderItem.setSellerSku(sellerSku);
         amazonOrderItem.setSku(map.get("sku"));
         amazonOrderItem.setSize(map.get("size"));
         amazonOrderItem.setData(Utils.getJsonString(orderItem));
         amazonOrderItem.setCreateTime(new Timestamp(System.currentTimeMillis()));
         amazonOrderItemRepository.save(amazonOrderItem);
+        try {
+            AmazonSellerSku amazonSellerSku = amazonSellerSkuRepository.findByMarketAndSku(market, sellerSku);
+            if (amazonSellerSku == null) {
+                amazonSellerSku = new AmazonSellerSku();
+                amazonSellerSku.setMarket(market);
+                amazonSellerSku.setSellerSku(sellerSku);
+                amazonSellerSku.setSku(amazonOrderItem.getSku());
+                amazonSellerSkuRepository.save(amazonSellerSku);
+            }
+        } catch (Throwable t) {
+            LOGGER.info("{} saving seller sku error: {}", market, t.getMessage(), t);
+        }
     }
 }
