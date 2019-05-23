@@ -13,12 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-@Service
+//@Service
 public class AmazonSkuParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonSkuParser.class);
     private static final int PAGE_SIZE = 100;
@@ -31,7 +29,7 @@ public class AmazonSkuParser {
     @Autowired
     AmazonInventoryRepository amazonInventoryRepository;
 
-    @Scheduled(cron = "0 0 16 22 5 ?")
+    //@Scheduled(cron = "0 0 16 22 5 ?")
     public void parse() {
         LOGGER.info("parse seller sku ...");
         Pageable orderPageable = PageRequest.of(0, PAGE_SIZE);
