@@ -283,6 +283,7 @@ public class AmazonFetcher {
                 amazonSellerSku.setMarket(market);
                 amazonSellerSku.setSellerSku(sellerSku);
                 amazonSellerSku.setSku(amazonOrderItem.getSku());
+                amazonSellerSku.setCreateTime(amazonOrderItem.getCreateTime());
                 amazonSellerSkuRepository.save(amazonSellerSku);
             }
         } catch (Throwable t) {
