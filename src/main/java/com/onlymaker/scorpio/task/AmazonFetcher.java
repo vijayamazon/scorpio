@@ -277,7 +277,7 @@ public class AmazonFetcher {
         amazonOrderItem.setCreateTime(new Timestamp(System.currentTimeMillis()));
         amazonOrderItemRepository.save(amazonOrderItem);
         try {
-            AmazonSellerSku amazonSellerSku = amazonSellerSkuRepository.findByMarketAndSku(market, sellerSku);
+            AmazonSellerSku amazonSellerSku = amazonSellerSkuRepository.findByMarketAndSellerSku(market, sellerSku);
             if (amazonSellerSku == null) {
                 amazonSellerSku = new AmazonSellerSku();
                 amazonSellerSku.setMarket(market);
