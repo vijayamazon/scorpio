@@ -176,7 +176,6 @@ public class AmazonFetcher {
                                         amazonInventory.setSize(map.get("size"));
                                         amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
                                         amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
-                                        amazonInventory.setFulfillment(Utils.FULFILL_BY_FBA);
                                         amazonInventoryRepository.save(amazonInventory);
                                         LOGGER.info("{} saving inventory: {}", market, amazonInventory.getSellerSku());
                                     }
