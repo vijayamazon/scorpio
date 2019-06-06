@@ -5,8 +5,10 @@ import com.amazonservices.mws.FulfillmentInboundShipment._2010_10_01.FBAInboundS
 import com.amazonservices.mws.FulfillmentInboundShipment._2010_10_01.model.*;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
+import com.onlymaker.scorpio.data.AmazonInbound;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class InboundService {
@@ -39,11 +41,14 @@ public class InboundService {
         return getClient().listInboundShipments(request);
     }
 
-    public ListInboundShipmentsResponse getListInboundShipmentsResponseByStatusWithLastDay(List<String> status) {
+    public ListInboundShipmentsResponse getListInboundShipmentsResponseUpdatedLastDay() {
         forceWaiting(FETCH_INBOUND_INTERVAL_IN_MS);
         ListInboundShipmentsRequest request = new ListInboundShipmentsRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
+        List<String> status = new ArrayList<>();
+        status.addAll(AmazonInbound.COUNTING_STATUS_LIST);
+        status.addAll(AmazonInbound.STOP_COUNTING_STATUS_LIST);
         ShipmentStatusList shipmentStatusList = new ShipmentStatusList(status);
         request.setShipmentStatusList(shipmentStatusList);
         LocalDate date = LocalDate.now();

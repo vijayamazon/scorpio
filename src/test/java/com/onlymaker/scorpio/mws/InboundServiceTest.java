@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
+import com.onlymaker.scorpio.data.AmazonInbound;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(SpringRunner.class)
@@ -75,16 +75,8 @@ public class InboundServiceTest {
      */
     @Test
     public void listInboundShipments() {
-        List<String> status = new ArrayList<String>() {{
-            add("WORKING");
-            add("SHIPPED");
-            add("IN_TRANSIT");
-            add("DELIVERED");
-            add("CHECKED_IN");
-            add("RECEIVING");
-        }};
         ListInboundShipmentsResult result = inboundService
-                .getListInboundShipmentsResponseByStatus(status)
+                .getListInboundShipmentsResponseByStatus(AmazonInbound.COUNTING_STATUS_LIST)
                 .getListInboundShipmentsResult();
         result.getShipmentData().getMember().forEach(this::print);
         if (result.isSetNextToken()) {
@@ -99,16 +91,8 @@ public class InboundServiceTest {
 
     @Test
     public void listInboundShipmentsLastDay() {
-        List<String> status = new ArrayList<String>() {{
-            add("WORKING");
-            add("SHIPPED");
-            add("IN_TRANSIT");
-            add("DELIVERED");
-            add("CHECKED_IN");
-            add("RECEIVING");
-        }};
         inboundService
-                .getListInboundShipmentsResponseByStatusWithLastDay(status)
+                .getListInboundShipmentsResponseUpdatedLastDay()
                 .getListInboundShipmentsResult()
                 .getShipmentData()
                 .getMember()

@@ -49,4 +49,12 @@ public class Utils {
         }
         return map;
     }
+
+    public static String getDestFromMarket(String market) {
+        if (market.length() > 2) {
+            return market.substring(market.length() - 2).toUpperCase();
+        } else {
+            return "";
+        }
+    }
 }

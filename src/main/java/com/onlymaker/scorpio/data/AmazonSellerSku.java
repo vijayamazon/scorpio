@@ -17,6 +17,9 @@ public class AmazonSellerSku {
     @Column(name = "sku")
     private String sku;
 
+    @Column(name = "size")
+    private String size;
+
     @Column(name = "seller_sku")
     private String sellerSku;
 
@@ -45,6 +48,14 @@ public class AmazonSellerSku {
 
     public void setSku(String sku) {
         this.sku = sku;
+    }
+
+    public String getSize() {
+        return size;
+    }
+
+    public void setSize(String size) {
+        this.size = size;
     }
 
     public String getSellerSku() {

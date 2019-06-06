@@ -4,15 +4,13 @@ import com.amazonaws.mws.model.GetReportRequest;
 import com.amazonaws.mws.model.GetReportRequestListResponse;
 import com.amazonaws.mws.model.ReportRequestInfo;
 import com.amazonaws.mws.model.RequestReportResponse;
+import com.amazonservices.mws.FulfillmentInboundShipment._2010_10_01.model.*;
 import com.amazonservices.mws.orders._2013_09_01.model.*;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
 import com.onlymaker.scorpio.data.*;
-import com.onlymaker.scorpio.mws.HtmlPageService;
-import com.onlymaker.scorpio.mws.OrderService;
-import com.onlymaker.scorpio.mws.ReportService;
-import com.onlymaker.scorpio.mws.Utils;
+import com.onlymaker.scorpio.mws.*;
 import org.apache.commons.lang3.StringUtils;
 import org.mozilla.universalchardet.UniversalDetector;
 import org.slf4j.Logger;
@@ -59,14 +57,19 @@ public class AmazonFetcher {
     AmazonReportLogRepository amazonReportLogRepository;
     @Autowired
     AmazonSellerSkuRepository amazonSellerSkuRepository;
+    @Autowired
+    AmazonInboundRepository amazonInboundRepository;
+    @Autowired
+    AmazonInboundItemRepository amazonInboundItemRepository;
 
     @Scheduled(cron = "${fetcher.cron}")
     public void everyday() {
-        LOGGER.info("run fetch task ...");
+        LOGGER.info("run fetcher ...");
         requestInventoryReport();
         fetchHtml();
         fetchInventoryReport();
         fetchOrder();
+        fetchInbound();
     }
 
     private void fetchHtml() {
@@ -98,6 +101,25 @@ public class AmazonFetcher {
                 fetchOrderByUpdateTime(orderService);
             } catch (Throwable t) {
                 LOGGER.info("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
+            }
+        }
+    }
+
+    private void fetchInbound() {
+        List<MarketWebService> list = amazon.getList();
+        for (MarketWebService mws : list) {
+            InboundService inboundService = new InboundService(appInfo, mws);
+            ListInboundShipmentsResult result = inboundService
+                    .getListInboundShipmentsResponseUpdatedLastDay()
+                    .getListInboundShipmentsResult();
+            result.getShipmentData().getMember().forEach(member -> processInboundShipmentInfo(member, mws.getMarketplace(), inboundService));
+            String token = result.getNextToken();
+            while (StringUtils.isNotEmpty(token)) {
+                ListInboundShipmentsByNextTokenResult nextResult = inboundService
+                        .getListInboundShipmentsResponseByNextToken(token)
+                        .getListInboundShipmentsByNextTokenResult();
+                nextResult.getShipmentData().getMember().forEach(member -> processInboundShipmentInfo(member, mws.getMarketplace(), inboundService));
+                token = nextResult.getNextToken();
             }
         }
     }
@@ -282,11 +304,66 @@ public class AmazonFetcher {
                 amazonSellerSku.setMarket(market);
                 amazonSellerSku.setSellerSku(sellerSku);
                 amazonSellerSku.setSku(amazonOrderItem.getSku());
+                amazonSellerSku.setSize(amazonOrderItem.getSize());
                 amazonSellerSku.setCreateTime(amazonOrderItem.getCreateTime());
                 amazonSellerSkuRepository.save(amazonSellerSku);
             }
         } catch (Throwable t) {
             LOGGER.info("{} saving seller sku error: {}", market, t.getMessage(), t);
+        }
+    }
+
+    private void processInboundShipmentInfo(InboundShipmentInfo info, String market, InboundService inboundService) {
+        String shipmentId = info.getShipmentId();
+        String status = info.getShipmentStatus();
+        AmazonInbound inbound = amazonInboundRepository.findByShipmentId(shipmentId);
+        if (inbound == null) {
+            LOGGER.info("Saving shipment {}, status {}", info.getShipmentName(), status);
+            inbound = new AmazonInbound(info);
+            inbound.setMarket(market);
+            inbound.setDest(Utils.getDestFromMarket(market));
+            amazonInboundRepository.save(inbound);
+            ListInboundShipmentItemsResult result = inboundService
+                    .getListInboundShipmentItemsResponse(shipmentId)
+                    .getListInboundShipmentItemsResult();
+            for (InboundShipmentItem item : result.getItemData().getMember()) {
+                saveInboundShipmentItem(inbound, item);
+            }
+            String token = result.getNextToken();
+            while (StringUtils.isNotEmpty(token)) {
+                ListInboundShipmentItemsByNextTokenResult nextResult = inboundService
+                        .getListInboundShipmentItemsByNextTokenResponse(token)
+                        .getListInboundShipmentItemsByNextTokenResult();
+                for (InboundShipmentItem item : nextResult.getItemData().getMember()) {
+                    saveInboundShipmentItem(inbound, item);
+                }
+                token = nextResult.getNextToken();
+            }
+        } else {
+            if (!inbound.getStatus().equals(status)) {
+                LOGGER.info("Updating shipment {}, status {}", info.getShipmentName(), status);
+                inbound.setStatus(status);
+                amazonInboundRepository.save(inbound);
+                updateInboundShipmentItemStatus(shipmentId, status);
+            }
+        }
+    }
+
+    private void saveInboundShipmentItem(AmazonInbound inbound, InboundShipmentItem item) {
+        LOGGER.info("Saving shipment item {}, status {}", item.getSellerSKU(), inbound.getStatus());
+        AmazonInboundItem amazonInboundItem = new AmazonInboundItem(inbound, item);
+        Map<String, String> map = Utils.parseSellerSku(item.getSellerSKU());
+        amazonInboundItem.setSku(map.get("sku"));
+        amazonInboundItem.setSize(map.get("size"));
+        amazonInboundItemRepository.save(amazonInboundItem);
+    }
+
+    private void updateInboundShipmentItemStatus(String shipmentId, String status) {
+        Iterable<AmazonInboundItem> iterable = amazonInboundItemRepository.findAllByShipmentId(shipmentId);
+        for (AmazonInboundItem item : iterable) {
+            LOGGER.info("Updating shipment item {}, status {}", item.getSellerSku(), status);
+            item.setStatus(status);
+            amazonInboundItemRepository.save(item);
         }
     }
 }
