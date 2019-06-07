@@ -321,7 +321,6 @@ public class AmazonFetcher {
             LOGGER.info("Saving shipment {}, status {}", info.getShipmentName(), status);
             inbound = new AmazonInbound(info);
             inbound.setMarket(market);
-            inbound.setDest(Utils.getDestFromMarket(market));
             amazonInboundRepository.save(inbound);
             ListInboundShipmentItemsResult result = inboundService
                     .getListInboundShipmentItemsResponse(shipmentId)

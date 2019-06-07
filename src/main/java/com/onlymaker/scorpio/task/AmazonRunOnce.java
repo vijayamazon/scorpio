@@ -14,13 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 
-@Service
+//@Service
 public class AmazonRunOnce {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonRunOnce.class);
     private static final int PAGE_SIZE = 100;
@@ -35,7 +33,7 @@ public class AmazonRunOnce {
     @Autowired
     AmazonInboundItemRepository amazonInboundItemRepository;
 
-    @Scheduled(cron = "0 10 7 6 6 ?")
+    //@Scheduled(cron = "0 10 7 6 6 ?")
     public void parse() {
         LOGGER.info("Run onetime task ...");
         initInboundData();
@@ -89,7 +87,6 @@ public class AmazonRunOnce {
             LOGGER.info("Saving shipment {}, status {}", info.getShipmentName(), info.getShipmentStatus());
             amazonInbound = new AmazonInbound(info);
             amazonInbound.setMarket(market);
-            amazonInbound.setDest(Utils.getDestFromMarket(market));
             amazonInboundRepository.save(amazonInbound);
             ListInboundShipmentItemsResult result = inboundService
                     .getListInboundShipmentItemsResponse(shipmentId)

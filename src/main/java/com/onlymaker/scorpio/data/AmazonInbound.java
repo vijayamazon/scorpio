@@ -29,7 +29,6 @@ public class AmazonInbound {
         shipmentId = info.getShipmentId();
         shipmentName = info.getShipmentName();
         status = info.getShipmentStatus();
-        destCenterId = info.getDestinationFulfillmentCenterId();
         data = Utils.getJsonString(info);
         createTime = new Timestamp(System.currentTimeMillis());
     }
@@ -64,17 +63,11 @@ public class AmazonInbound {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "dest_center_id")
-    private String destCenterId;
-
     @Column(name = "data")
     private String data;
 
     @Column(name = "market")
     private String market;
-
-    @Column(name = "dest")
-    private String dest;
 
     @Column(name = "create_time")
     private Timestamp createTime;
@@ -111,14 +104,6 @@ public class AmazonInbound {
         this.status = status;
     }
 
-    public String getDestCenterId() {
-        return destCenterId;
-    }
-
-    public void setDestCenterId(String destCenterId) {
-        this.destCenterId = destCenterId;
-    }
-
     public String getData() {
         return data;
     }
@@ -133,14 +118,6 @@ public class AmazonInbound {
 
     public void setMarket(String market) {
         this.market = market;
-    }
-
-    public String getDest() {
-        return dest;
-    }
-
-    public void setDest(String dest) {
-        this.dest = dest;
     }
 
     public Timestamp getCreateTime() {

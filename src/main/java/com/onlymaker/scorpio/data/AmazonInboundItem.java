@@ -16,9 +16,7 @@ public class AmazonInboundItem {
         shipmentId = inbound.getShipmentId();
         shipmentName = inbound.getShipmentName();
         status = inbound.getStatus();
-        destCenterId = inbound.getDestCenterId();
         market = inbound.getMarket();
-        dest = inbound.getDest();
         sellerSku = item.getSellerSKU();
         fnSku = item.getFulfillmentNetworkSKU();
         quantityShipped = item.getQuantityShipped();
@@ -41,17 +39,11 @@ public class AmazonInboundItem {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "dest_center_id")
-    private String destCenterId;
-
     @Column(name = "data")
     private String data;
 
     @Column(name = "market")
     private String market;
-
-    @Column(name = "dest")
-    private String dest;
 
     @Column(name = "seller_sku")
     private String sellerSku;
@@ -106,14 +98,6 @@ public class AmazonInboundItem {
         this.status = status;
     }
 
-    public String getDestCenterId() {
-        return destCenterId;
-    }
-
-    public void setDestCenterId(String destCenterId) {
-        this.destCenterId = destCenterId;
-    }
-
     public String getData() {
         return data;
     }
@@ -128,14 +112,6 @@ public class AmazonInboundItem {
 
     public void setMarket(String market) {
         this.market = market;
-    }
-
-    public String getDest() {
-        return dest;
-    }
-
-    public void setDest(String dest) {
-        this.dest = dest;
     }
 
     public String getSellerSku() {
