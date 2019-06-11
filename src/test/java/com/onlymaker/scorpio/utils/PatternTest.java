@@ -22,6 +22,7 @@ public class PatternTest {
             add("KHUK-xy624-uk8-New-FBA");
             add("RNDEM-MRS17059B-EU44-FBA");
             add("RNDE-xy447-EU42-FBA");
+            add("CLUS-vk0163-US9.5-FBA-X0");
         }}.forEach(s -> {
             Matcher matcher = Utils.SELLER_SKU.matcher(s.toUpperCase());
             if (matcher.find()) {
