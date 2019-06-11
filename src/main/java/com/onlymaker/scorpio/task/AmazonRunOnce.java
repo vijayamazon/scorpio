@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-@Service
+//@Service
 public class AmazonRunOnce {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonRunOnce.class);
     private static final int PAGE_SIZE = 100;
@@ -32,7 +32,7 @@ public class AmazonRunOnce {
     @Autowired
     AmazonInventoryRepository amazonInventoryRepository;
 
-    @Scheduled(cron = "0 0 10 11 6 ?")
+    //@Scheduled(cron = "0 0 10 11 6 ?")
     public void parse() {
         LOGGER.info("Run onetime task ...");
         refreshSellerSkuSize();
@@ -86,7 +86,7 @@ public class AmazonRunOnce {
     private void refreshInboundItemSkuSize() {
         Pageable pageable = PageRequest.of(0, PAGE_SIZE);
         Page<AmazonInboundItem> page = amazonInboundItemRepository.findAll(pageable);
-        LOGGER.debug("Total seller sku pages: {}", page.getTotalPages());
+        LOGGER.debug("Total inbound pages: {}", page.getTotalPages());
         processAmazonInboundItemPage(page);
         while (page.hasNext()) {
             page = amazonInboundItemRepository.findAll(page.nextPageable());
@@ -107,7 +107,7 @@ public class AmazonRunOnce {
     private void refreshOrderItemSkuSize() {
         Pageable pageable = PageRequest.of(0, PAGE_SIZE);
         Page<AmazonOrderItem> page = amazonOrderItemRepository.findAll(pageable);
-        LOGGER.debug("Total seller sku pages: {}", page.getTotalPages());
+        LOGGER.debug("Total order pages: {}", page.getTotalPages());
         processAmazonOrderItemPage(page);
         while (page.hasNext()) {
             page = amazonOrderItemRepository.findAll(page.nextPageable());
