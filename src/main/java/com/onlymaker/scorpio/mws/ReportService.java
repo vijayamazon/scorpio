@@ -91,6 +91,7 @@ public class ReportService {
     }
 
     public GetReportListByNextTokenResponse getReportListByNextToken(String nextToken) throws MarketplaceWebServiceException {
+        forceWaiting();
         GetReportListByNextTokenRequest request = new GetReportListByNextTokenRequest();
         request.setMerchant(mws.getSellerId());
         request.setNextToken(nextToken);
@@ -121,5 +122,13 @@ public class ReportService {
                     appInfo.getVersion(), config);
         }
         return client;
+    }
+
+    private void forceWaiting() {
+        try {
+            Thread.sleep(60000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
