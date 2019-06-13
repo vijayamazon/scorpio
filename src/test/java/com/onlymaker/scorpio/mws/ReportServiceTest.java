@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest(classes = Main.class)
 public class ReportServiceTest {
     private ReportService reportService;
-    private String reportType = ReportService.REPORT_TYPE.get("inventory");
+    private String reportType = ReportService.REPORT_TYPE.get("receipt");
     @Autowired
     AppInfo appInfo;
     @Autowired
@@ -122,8 +122,7 @@ public class ReportServiceTest {
      */
     @Test
     public void getReport() throws MarketplaceWebServiceException, IOException {
-        //String id = "14970262470018038";
-        String id = "14963427496018038";
+        String id = "15256325366018059";
         File report = new File("/tmp/report");
         GetReportRequest request = reportService.prepareGetReport(id, new FileOutputStream(report));
         GetReportResponse response = reportService.getReport(request);

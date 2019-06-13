@@ -4,6 +4,7 @@ import com.amazonservices.mws.FulfillmentInboundShipment._2010_10_01.model.Inbou
 import com.onlymaker.scorpio.mws.Utils;
 
 import javax.persistence.*;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -72,6 +73,9 @@ public class AmazonInbound {
     @Column(name = "create_time")
     private Timestamp createTime;
 
+    @Column(name = "receive_date")
+    private Date receiveDate;
+
     public Long getId() {
         return id;
     }
@@ -126,5 +130,13 @@ public class AmazonInbound {
 
     public void setCreateTime(Timestamp createTime) {
         this.createTime = createTime;
+    }
+
+    public Date getReceiveDate() {
+        return receiveDate;
+    }
+
+    public void setReceiveDate(Date receiveDate) {
+        this.receiveDate = receiveDate;
     }
 }
