@@ -62,9 +62,7 @@ public class ReportService {
         request.setMWSAuthToken(mws.getAuthToken());
         request.setReportTypeList(new TypeList(Arrays.asList(reportType)));
         List<String> completedStatus = new ArrayList<>();
-        completedStatus.add("_CANCELLED_");
         completedStatus.add("_DONE_");
-        completedStatus.add("_DONE_NO_DATA_");
         request.setReportProcessingStatusList(new StatusList(completedStatus));
         return getClient().getReportRequestList(request);
     }
