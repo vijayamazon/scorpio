@@ -1,13 +1,17 @@
 package com.onlymaker.scorpio.mws;
 
+import com.onlymaker.scorpio.data.AmazonAsin;
+import com.onlymaker.scorpio.data.AmazonAsinRepository;
 import com.onlymaker.scorpio.data.AmazonEntry;
 import com.onlymaker.scorpio.data.AmazonEntrySnapshot;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.HttpConnection;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,6 +24,9 @@ import java.util.regex.Pattern;
 public class HtmlPageService {
     private static final Logger LOGGER = LoggerFactory.getLogger(HtmlPageService.class);
     private static final String CHROME_UA = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36";
+
+    @Autowired
+    AmazonAsinRepository amazonAsinRepository;
 
     public AmazonEntrySnapshot parse(AmazonEntry entry) throws IOException {
         AmazonEntrySnapshot snapshot = new AmazonEntrySnapshot();
@@ -47,17 +54,31 @@ public class HtmlPageService {
         snapshot.setStar3(getStarByRate(star, 3));
         snapshot.setStar2(getStarByRate(star, 2));
         snapshot.setStar1(getStarByRate(star, 1));
-        int variable = document.select("#variation_color_name ul li").size();
-        if (variable == 0) {
-            variable = 1;
-        }
+
+        Elements colorVariable = document.select("#variation_color_name ul li");
+        int variable = colorVariable.size();
         LOGGER.info("variable: {}", variable);
         snapshot.setVariable(variable);
+
+        for (int i = 0; i < colorVariable.size(); i++) {
+            Element color = colorVariable.get(i);
+            try {
+                if (i > 0) {
+                    String asin = color.attr("data-defaultasin");
+                    connection = (HttpConnection) Jsoup.connect(entry.getUrl() + asin);
+                    document = connection.validateTLSCertificates(false).userAgent(CHROME_UA).get();
+                }
+                parseAsin(entry.getMarket(), entry.getAsin(), color.select("img").get(0).attr("alt"), document);
+            } catch (Throwable t) {
+                LOGGER.error("parse asin error {}", t.getMessage(), t);
+            }
+        }
+
         return snapshot;
     }
 
     private int getStarByRate(Elements elements, int rate) {
-        Elements star  = elements.select(String.format(".%dstar", rate));
+        Elements star = elements.select(String.format(".%dstar", rate));
         if (star.size() != 0) {
             return Integer.valueOf(star.get(0).attr("aria-label").trim().replace("%", ""));
         }
@@ -95,5 +116,39 @@ public class HtmlPageService {
             return Float.parseFloat(as);
         }
         return 0f;
+    }
+
+    private void parseAsin(String market, String parent, String color, Document document) {
+        // size
+        Elements sizeVariable = document.select("#variation_size_name option");
+        // ignore first option
+        for (int i = 1; i < sizeVariable.size(); i++) {
+            Element size = sizeVariable.get(i);
+            String value = size.val();
+            if (value != null) {
+                String[] parts = value.split(",");
+                if (parts.length == 2) {
+                    String asin = parts[1];
+                    String variable = size.text();
+                    saveOrUpdateAsin(market, parent, asin, color, variable);
+                }
+            }
+        }
+    }
+
+    private void saveOrUpdateAsin(String market, String parent, String asin, String color, String size) {
+        Date date = new Date(System.currentTimeMillis());
+        AmazonAsin amazonAsin = amazonAsinRepository.findByMarketAndAsinAndColorAndSize(market, asin, color, size);
+        if (amazonAsin == null) {
+            amazonAsin = new AmazonAsin();
+            amazonAsin.setMarket(market);
+            amazonAsin.setParentAsin(parent);
+            amazonAsin.setAsin(asin);
+            amazonAsin.setColor(color);
+            amazonAsin.setSize(size);
+            amazonAsin.setCreateDate(date);
+        }
+        amazonAsin.setUpdateDate(date);
+        amazonAsinRepository.save(amazonAsin);
     }
 }

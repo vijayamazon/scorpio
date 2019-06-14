@@ -78,7 +78,7 @@ public class AmazonFetcher {
 
     private void fetchHtml() {
         String identity = "";
-        Iterable<AmazonEntry> iterable = amazonEntryRepository.findAllByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED);
+        Iterable<AmazonEntry> iterable = amazonEntryRepository.findByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED);
         for (AmazonEntry entry : iterable) {
             try {
                 if (!Objects.equals(identity, entry.getMarket() + entry.getAsin())) {

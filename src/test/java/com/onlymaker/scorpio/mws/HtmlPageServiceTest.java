@@ -21,9 +21,10 @@ public class HtmlPageServiceTest {
 
     @Test
     public void fetch() throws IOException {
-        HtmlPageService htmlPageService1 = htmlPageService;
-        for (AmazonEntry amazonEntry : amazonEntryRepository.findAllByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED)) {
-            htmlPageService1.parse(amazonEntry);
+        Iterable<AmazonEntry> i = amazonEntryRepository.findByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED);
+        if (i.iterator().hasNext()) {
+            AmazonEntry entry = i.iterator().next();
+            htmlPageService.parse(entry);
         }
     }
 }
