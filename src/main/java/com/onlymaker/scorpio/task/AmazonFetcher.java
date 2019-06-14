@@ -95,7 +95,7 @@ public class AmazonFetcher {
                         amazonEntryRepository.save(entry);
                     }
                 }
-                LOGGER.error("{} fetch html unexpected error: {}", entry.getMarket(), t, t.getMessage(), t);
+                LOGGER.error("{} fetch html unexpected error: {}", entry.getMarket(), t.getMessage(), t);
             }
         }
     }
@@ -107,12 +107,12 @@ public class AmazonFetcher {
             try {
                 fetchOrderByCreateTime(orderService);
             } catch (Throwable t) {
-                LOGGER.info("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
+                LOGGER.error("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
             try {
                 fetchOrderByUpdateTime(orderService);
             } catch (Throwable t) {
-                LOGGER.info("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
+                LOGGER.error("{} fetch order unexpected error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -161,7 +161,7 @@ public class AmazonFetcher {
                 amazonReportLog.setCreateTime(new Timestamp(requestInfo.getSubmittedDate().toGregorianCalendar().getTimeInMillis()));
                 amazonReportLogRepository.save(amazonReportLog);
             } catch (Throwable t) {
-                LOGGER.info("{} request {} error: {}", mws.getMarketplace(), type, t.getMessage(), t);
+                LOGGER.error("{} request {} error: {}", mws.getMarketplace(), type, t.getMessage(), t);
             }
         }
     }
@@ -187,26 +187,28 @@ public class AmazonFetcher {
                         String fnSku = elements[fields.get("fnsku")];
                         String sellerSku = elements[fields.get("sku")];
                         Map<String, String> map = Utils.parseSellerSku(sellerSku);
+                        String size = map.get("size");
+                        String sku = saveOrUpdateAmazonSellerSku(market, sellerSku, map.get("sku"), size);
                         Date date = new Date(System.currentTimeMillis());
                         AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, date);
                         if (amazonInventory == null) {
+                            LOGGER.info("{} saving inventory: {}", market, sellerSku);
                             amazonInventory = new AmazonInventory();
                             amazonInventory.setMarket(market);
                             amazonInventory.setFnSku(fnSku);
                             amazonInventory.setCreateDate(date);
                             amazonInventory.setAsin(elements[fields.get("asin")]);
                             amazonInventory.setSellerSku(sellerSku);
-                            amazonInventory.setSku(map.get("sku"));
-                            amazonInventory.setSize(map.get("size"));
+                            amazonInventory.setSku(sku);
+                            amazonInventory.setSize(size);
                             amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
                             amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
                             amazonInventoryRepository.save(amazonInventory);
-                            LOGGER.info("{} saving inventory: {}", market, amazonInventory.getSellerSku());
                         }
                     }
                 }
             } catch (Throwable t) {
-                LOGGER.info("{} fetch inventory report error: {}", mws.getMarketplace(), t.getMessage(), t);
+                LOGGER.error("{} fetch inventory report error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -247,7 +249,7 @@ public class AmazonFetcher {
                     }
                 }
             } catch (Throwable t) {
-                LOGGER.info("{} fetch receipt report error: {}", mws.getMarketplace(), t.getMessage(), t);
+                LOGGER.error("{} fetch receipt report error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -346,8 +348,10 @@ public class AmazonFetcher {
     private void saveOrderItem(AmazonOrder order, OrderItem orderItem) {
         String market = order.getMarket();
         String sellerSku = orderItem.getSellerSKU();
-        LOGGER.info("{} saving orderItem: {}, {}", market, order.getAmazonOrderId(), orderItem.getOrderItemId());
         Map<String, String> map = Utils.parseSellerSku(sellerSku);
+        String size = map.get("size");
+        String sku = saveOrUpdateAmazonSellerSku(market, sellerSku, map.get("sku"), size);
+        LOGGER.info("{} saving orderItem: {}, {}", market, order.getAmazonOrderId(), orderItem.getOrderItemId());
         AmazonOrderItem amazonOrderItem = new AmazonOrderItem();
         amazonOrderItem.setMarket(market);
         amazonOrderItem.setAmazonOrderId(order.getAmazonOrderId());
@@ -358,25 +362,11 @@ public class AmazonFetcher {
         amazonOrderItem.setQuantity(orderItem.getQuantityOrdered());
         amazonOrderItem.setAsin(orderItem.getASIN());
         amazonOrderItem.setSellerSku(sellerSku);
-        amazonOrderItem.setSku(map.get("sku"));
-        amazonOrderItem.setSize(map.get("size"));
+        amazonOrderItem.setSku(sku);
+        amazonOrderItem.setSize(size);
         amazonOrderItem.setData(Utils.getJsonString(orderItem));
         amazonOrderItem.setCreateTime(new Timestamp(System.currentTimeMillis()));
         amazonOrderItemRepository.save(amazonOrderItem);
-        try {
-            AmazonSellerSku amazonSellerSku = amazonSellerSkuRepository.findByMarketAndSellerSku(market, sellerSku);
-            if (amazonSellerSku == null) {
-                amazonSellerSku = new AmazonSellerSku();
-                amazonSellerSku.setMarket(market);
-                amazonSellerSku.setSellerSku(sellerSku);
-                amazonSellerSku.setSku(amazonOrderItem.getSku());
-                amazonSellerSku.setSize(amazonOrderItem.getSize());
-                amazonSellerSku.setCreateTime(amazonOrderItem.getCreateTime());
-                amazonSellerSkuRepository.save(amazonSellerSku);
-            }
-        } catch (Throwable t) {
-            LOGGER.info("{} saving seller sku error: {}", market, t.getMessage(), t);
-        }
     }
 
     private void processInboundShipmentInfo(InboundShipmentInfo info, String market, InboundService inboundService) {
@@ -430,5 +420,27 @@ public class AmazonFetcher {
             item.setStatus(status);
             amazonInboundItemRepository.save(item);
         }
+    }
+
+    private String saveOrUpdateAmazonSellerSku(String market, String sellerSku, String sku, String size) {
+        try {
+            AmazonSellerSku amazonSellerSku = amazonSellerSkuRepository.findByMarketAndSellerSku(market, sellerSku);
+            if (amazonSellerSku == null) {
+                amazonSellerSku = new AmazonSellerSku();
+                amazonSellerSku.setMarket(market);
+                amazonSellerSku.setSellerSku(sellerSku);
+                amazonSellerSku.setSku(sku);
+                amazonSellerSku.setSize(size);
+                amazonSellerSku.setCreateTime(new Timestamp(System.currentTimeMillis()));
+                amazonSellerSkuRepository.save(amazonSellerSku);
+            } else if (StringUtils.isEmpty(amazonSellerSku.getSize()) && StringUtils.isNotEmpty(size)) {
+                sku = amazonSellerSku.getSku();
+                amazonSellerSku.setSize(size);
+                amazonSellerSkuRepository.save(amazonSellerSku);
+            }
+        } catch (Throwable t) {
+            LOGGER.error("{} saveOrUpdate seller sku error: {}", market, t.getMessage(), t);
+        }
+        return sku;
     }
 }
