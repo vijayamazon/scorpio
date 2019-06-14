@@ -12,6 +12,7 @@ import com.onlymaker.scorpio.config.MarketWebService;
 import com.onlymaker.scorpio.data.*;
 import com.onlymaker.scorpio.mws.*;
 import org.apache.commons.lang3.StringUtils;
+import org.jsoup.HttpStatusException;
 import org.mozilla.universalchardet.UniversalDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,15 @@ public class AmazonFetcher {
                 identity = entry.getMarket() + entry.getAsin();
                 Thread.sleep(SECOND_IN_MS);
             } catch (Throwable t) {
-                LOGGER.info("{} fetch html unexpected error: {}", entry.getMarket(), t, t.getMessage(), t);
+                if (t instanceof HttpStatusException) {
+                    HttpStatusException e = (HttpStatusException) t;
+                    LOGGER.error("{} response code {}", e.getUrl(), e.getStatusCode());
+                    if (e.getStatusCode() == 404) {
+                        entry.setStatus(0);
+                        amazonEntryRepository.save(entry);
+                    }
+                }
+                LOGGER.error("{} fetch html unexpected error: {}", entry.getMarket(), t, t.getMessage(), t);
             }
         }
     }
