@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 @Entity
 @Table(name = "amazon_entry")
 public class AmazonEntry {
+    public static final int STATUS_DISABLED = 0;
     public static final int STATUS_ENABLED = 1;
 
     @Id

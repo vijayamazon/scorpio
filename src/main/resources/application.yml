@@ -28,7 +28,8 @@ amazon:
       secret-key: secretKey
 
 fetcher:
-  cron: "0 0 0 * * *"
+  html: "0 0 0 * * *"
+  mws: "0 0 12 * * *"
   order:
     retrospect:
       days: 3

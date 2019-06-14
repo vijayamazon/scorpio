@@ -10,9 +10,11 @@ import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
 import com.onlymaker.scorpio.data.*;
-import com.onlymaker.scorpio.mws.*;
+import com.onlymaker.scorpio.mws.InboundService;
+import com.onlymaker.scorpio.mws.OrderService;
+import com.onlymaker.scorpio.mws.ReportService;
+import com.onlymaker.scorpio.mws.Utils;
 import org.apache.commons.lang3.StringUtils;
-import org.jsoup.HttpStatusException;
 import org.mozilla.universalchardet.UniversalDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,24 +33,16 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @Service
 public class AmazonFetcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(AmazonFetcher.class);
-    private static final long SECOND_IN_MS = 1000;
     @Value("${fetcher.order.retrospect.days}")
     Long orderRetrospectDays;
     @Autowired
     AppInfo appInfo;
     @Autowired
     Amazon amazon;
-    @Autowired
-    HtmlPageService htmlPageService;
-    @Autowired
-    AmazonEntryRepository amazonEntryRepository;
-    @Autowired
-    AmazonEntrySnapshotRepository amazonEntrySnapshotRepository;
     @Autowired
     AmazonOrderRepository amazonOrderRepository;
     @Autowired
@@ -64,40 +58,15 @@ public class AmazonFetcher {
     @Autowired
     AmazonInboundItemRepository amazonInboundItemRepository;
 
-    @Scheduled(cron = "${fetcher.cron}")
+    @Scheduled(cron = "${fetcher.mws}")
     public void everyday() {
         LOGGER.info("run fetcher ...");
         requestInventoryReport();
         requestReceiptReport();
-        fetchHtml();
-        fetchInventoryReport();
-        fetchReceiptReport();
         fetchOrder();
         fetchInbound();
-    }
-
-    private void fetchHtml() {
-        String identity = "";
-        Iterable<AmazonEntry> iterable = amazonEntryRepository.findByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED);
-        for (AmazonEntry entry : iterable) {
-            try {
-                if (!Objects.equals(identity, entry.getMarket() + entry.getAsin())) {
-                    amazonEntrySnapshotRepository.save(htmlPageService.parse(entry));
-                }
-                identity = entry.getMarket() + entry.getAsin();
-                Thread.sleep(SECOND_IN_MS);
-            } catch (Throwable t) {
-                if (t instanceof HttpStatusException) {
-                    HttpStatusException e = (HttpStatusException) t;
-                    LOGGER.error("{} response code {}", e.getUrl(), e.getStatusCode());
-                    if (e.getStatusCode() == 404) {
-                        entry.setStatus(0);
-                        amazonEntryRepository.save(entry);
-                    }
-                }
-                LOGGER.error("{} fetch html unexpected error: {}", entry.getMarket(), t.getMessage(), t);
-            }
-        }
+        fetchInventoryReport();
+        fetchReceiptReport();
     }
 
     private void fetchOrder() {
