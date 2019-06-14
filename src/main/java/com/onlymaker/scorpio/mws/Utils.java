@@ -12,8 +12,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
-    public static String FULFILL_BY_FBA = "AFN";
-    public static String FULFILL_NOT_FBA = "MFN";
     public static Pattern SELLER_SKU = Pattern.compile("(?<sku>\\w*\\d+\\w*)-.*(?<size>US\\d+\\.?\\d?|UK\\d+\\.?\\d?|EU\\d+\\.?\\d?)");
 
     public static XMLGregorianCalendar getXMLGregorianCalendar(LocalDate date) {

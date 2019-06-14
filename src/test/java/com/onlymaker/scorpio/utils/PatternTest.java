@@ -23,12 +23,16 @@ public class PatternTest {
             add("RNDEM-MRS17059B-EU44-FBA");
             add("RNDE-xy447-EU42-FBA");
             add("CLUS-vk0163-US9.5-FBA-X0");
+            add("RNDE-P8506A -EU40");
         }}.forEach(s -> {
             Matcher matcher = Utils.SELLER_SKU.matcher(s.toUpperCase());
+            System.out.println("==========");
             if (matcher.find()) {
-                System.out.println("==========");
-                System.out.println("sku: " + matcher.group("sku"));
-                System.out.println("size: " + matcher.group("size"));
+                System.out.println("Match: " + s);
+                System.out.println("\tsku: " + matcher.group("sku"));
+                System.out.println("\tsize: " + matcher.group("size"));
+            } else {
+                System.out.println("Miss-match: " + s);
             }
         });
     }

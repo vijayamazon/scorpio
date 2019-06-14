@@ -7,4 +7,5 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 public interface AmazonSellerSkuRepository extends PagingAndSortingRepository<AmazonSellerSku, Long> {
     AmazonSellerSku findByMarketAndSellerSku(String market, String sellerSku);
     Page<AmazonSellerSku> findAll(Pageable pageable);
+    Iterable<AmazonSellerSku> findBySizeIsNullOrSizeEquals(String size);
 }
