@@ -57,22 +57,33 @@ public class HtmlPageService {
 
         Elements colorVariable = document.select("#variation_color_name ul li");
         int variable = colorVariable.size();
-        LOGGER.info("variable: {}", variable);
-        snapshot.setVariable(variable);
-
-        for (int i = 0; i < colorVariable.size(); i++) {
-            Element color = colorVariable.get(i);
-            try {
-                if (i > 0) {
-                    String asin = color.attr("data-defaultasin");
-                    connection = (HttpConnection) Jsoup.connect(entry.getUrl() + asin);
-                    document = connection.validateTLSCertificates(false).userAgent(CHROME_UA).get();
+        if (variable == 0) {
+            variable = 1;
+            colorVariable = document.select("#variation_color_name .selection");
+            if (colorVariable.size() == 1) {
+                try {
+                    parseAsin(entry.getMarket(), entry.getAsin(), colorVariable.get(0).text(), document);
+                } catch (Throwable t) {
+                    LOGGER.error("parse asin error {}", t.getMessage(), t);
                 }
-                parseAsin(entry.getMarket(), entry.getAsin(), color.select("img").get(0).attr("alt"), document);
-            } catch (Throwable t) {
-                LOGGER.error("parse asin error {}", t.getMessage(), t);
+            }
+        } else {
+            for (int i = 0; i < variable; i++) {
+                Element color = colorVariable.get(i);
+                try {
+                    if (i > 0) {
+                        String asin = color.attr("data-defaultasin");
+                        connection = (HttpConnection) Jsoup.connect(entry.getUrl() + asin);
+                        document = connection.validateTLSCertificates(false).userAgent(CHROME_UA).get();
+                    }
+                    parseAsin(entry.getMarket(), entry.getAsin(), color.select("img").get(0).attr("alt"), document);
+                } catch (Throwable t) {
+                    LOGGER.error("parse asin error {}", t.getMessage(), t);
+                }
             }
         }
+        LOGGER.info("variable: {}", variable);
+        snapshot.setVariable(variable);
 
         return snapshot;
     }
