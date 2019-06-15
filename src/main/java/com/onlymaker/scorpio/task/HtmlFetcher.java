@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
 import java.util.Objects;
 
 @Service
@@ -46,6 +47,7 @@ public class HtmlFetcher {
                     LOGGER.error("{} response code {}", e.getUrl(), e.getStatusCode());
                     if (e.getStatusCode() == 404) {
                         entry.setStatus(AmazonEntry.STATUS_DISABLED);
+                        entry.setStopDate(new Date(System.currentTimeMillis()));
                         amazonEntryRepository.save(entry);
                     }
                 }
