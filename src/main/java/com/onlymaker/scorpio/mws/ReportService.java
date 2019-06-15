@@ -62,12 +62,14 @@ public class ReportService {
         request.setMWSAuthToken(mws.getAuthToken());
         request.setReportTypeList(new TypeList(Arrays.asList(reportType)));
         List<String> completedStatus = new ArrayList<>();
+        completedStatus.add("_CANCELLED_");
         completedStatus.add("_DONE_");
+        completedStatus.add("_DONE_NO_DATA_");
         request.setReportProcessingStatusList(new StatusList(completedStatus));
         return getClient().getReportRequestList(request);
     }
 
-    public GetReportRequestListByNextTokenResponse getReportRequstListByNextToken(String nextToken) throws MarketplaceWebServiceException {
+    public GetReportRequestListByNextTokenResponse getReportRequestListByNextToken(String nextToken) throws MarketplaceWebServiceException {
         GetReportRequestListByNextTokenRequest request = new GetReportRequestListByNextTokenRequest();
         request.setMerchant(mws.getSellerId());
         request.setNextToken(nextToken);

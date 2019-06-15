@@ -86,7 +86,7 @@ public class ReportServiceTest {
         });
         String nextToken = result.getNextToken();
         while (StringUtils.isNotEmpty(nextToken)) {
-            GetReportRequestListByNextTokenResult nextResult = reportService.getReportRequstListByNextToken(nextToken).getGetReportRequestListByNextTokenResult();
+            GetReportRequestListByNextTokenResult nextResult = reportService.getReportRequestListByNextToken(nextToken).getGetReportRequestListByNextTokenResult();
             System.out.println(nextResult.getReportRequestInfoList().size() + " more results");
         }
     }

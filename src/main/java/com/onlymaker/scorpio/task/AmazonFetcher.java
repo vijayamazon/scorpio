@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -228,14 +229,15 @@ public class AmazonFetcher {
     }
 
     private List<String> fetchReport(ReportService reportService, String type, File report) throws Exception {
-        List<String> lines = null;
+        List<String> lines = new ArrayList<>();
         GetReportRequestListResponse reportRequestListResponse = reportService.getReportRequestListCompleted(type);
         List<ReportRequestInfo> reportRequestInfos = reportRequestListResponse.getGetReportRequestListResult().getReportRequestInfoList();
         for (ReportRequestInfo reportRequestInfo : reportRequestInfos) {
             AmazonReportLog log = amazonReportLogRepository.findOneByRequestIdAndStatus(reportRequestInfo.getReportRequestId(), 0);
             if (log != null) {
-                String reportId = reportRequestInfo.getGeneratedReportId();
+                // _CANCELLED_, _DONE_NO_DATA_ will return null generatedReportId
                 if (reportRequestInfo.getReportProcessingStatus().equals("_DONE_")) {
+                    String reportId = reportRequestInfo.getGeneratedReportId();
                     GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
                     reportService.getReport(request);
                     request.getReportOutputStream().close();
@@ -247,8 +249,8 @@ public class AmazonFetcher {
                         LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
                         lines = Files.readAllLines(report.toPath());
                     }
+                    log.setReportId(reportId);
                 }
-                log.setReportId(reportId);
                 log.setStatus(1);
                 amazonReportLogRepository.save(log);
             }
