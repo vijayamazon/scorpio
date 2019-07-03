@@ -134,14 +134,16 @@ public class HtmlPageService {
         Elements sizeVariable = document.select("#variation_size_name option");
         // ignore first option
         for (int i = 1; i < sizeVariable.size(); i++) {
-            Element size = sizeVariable.get(i);
-            String value = size.val();
-            if (value != null) {
-                String[] parts = value.split(",");
-                if (parts.length == 2) {
-                    String asin = parts[1];
-                    String variable = size.text();
-                    saveOrUpdateAsin(market, parent, asin, color, variable);
+            if (sizeVariable.hasClass("dropdownAvailable")) {
+                Element size = sizeVariable.get(i);
+                String value = size.val();
+                if (value != null) {
+                    String[] parts = value.split(",");
+                    if (parts.length == 2) {
+                        String asin = parts[1];
+                        String variable = size.text();
+                        saveOrUpdateAsin(market, parent, asin, color, variable);
+                    }
                 }
             }
         }
@@ -149,16 +151,16 @@ public class HtmlPageService {
 
     private void saveOrUpdateAsin(String market, String parent, String asin, String color, String size) {
         Date date = new Date(System.currentTimeMillis());
-        AmazonAsin amazonAsin = amazonAsinRepository.findByMarketAndAsinAndColorAndSize(market, asin, color, size);
+        AmazonAsin amazonAsin = amazonAsinRepository.findByMarketAndAsin(market, asin);
         if (amazonAsin == null) {
             amazonAsin = new AmazonAsin();
             amazonAsin.setMarket(market);
             amazonAsin.setParentAsin(parent);
             amazonAsin.setAsin(asin);
-            amazonAsin.setColor(color);
-            amazonAsin.setSize(size);
             amazonAsin.setCreateDate(date);
         }
+        amazonAsin.setColor(color);
+        amazonAsin.setSize(size);
         amazonAsin.setUpdateDate(date);
         amazonAsinRepository.save(amazonAsin);
     }
