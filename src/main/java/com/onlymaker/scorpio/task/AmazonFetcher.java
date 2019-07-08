@@ -353,7 +353,7 @@ public class AmazonFetcher {
         String status = info.getShipmentStatus();
         AmazonInbound inbound = amazonInboundRepository.findByShipmentId(shipmentId);
         if (inbound == null) {
-            LOGGER.info("Saving shipment {}, status {}", info.getShipmentName(), status);
+            LOGGER.info("Saving shipment {}, status {}", info.getShipmentId(), status);
             inbound = new AmazonInbound(info);
             inbound.setMarket(market);
             amazonInboundRepository.save(inbound);
@@ -375,7 +375,8 @@ public class AmazonFetcher {
             }
         } else {
             if (!inbound.getStatus().equals(status)) {
-                LOGGER.info("Updating shipment {}, status {}", info.getShipmentName(), status);
+                LOGGER.info("Updating shipment {}, status {}", info.getShipmentId(), status);
+                inbound.setShipmentName(info.getShipmentName());
                 inbound.setStatus(status);
                 amazonInboundRepository.save(inbound);
                 updateInboundShipmentItemStatus(shipmentId, status);
