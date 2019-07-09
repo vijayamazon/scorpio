@@ -21,9 +21,6 @@ public class AmazonEntry {
     @Column(name = "asin")
     private String asin;
 
-    @Column(name = "sku")
-    private String sku;
-
     @Column(name = "url")
     private String url;
 
@@ -58,14 +55,6 @@ public class AmazonEntry {
 
     public void setAsin(String asin) {
         this.asin = asin;
-    }
-
-    public String getSku() {
-        return sku;
-    }
-
-    public void setSku(String sku) {
-        this.sku = sku;
     }
 
     public String getUrl() {

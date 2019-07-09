@@ -17,9 +17,6 @@ public class AmazonEntrySnapshot {
     @Column(name = "asin")
     private String asin;
 
-    @Column(name = "sku")
-    private String sku;
-
     @Column(name = "variable")
     private Integer variable;
 
@@ -72,14 +69,6 @@ public class AmazonEntrySnapshot {
 
     public void setAsin(String asin) {
         this.asin = asin;
-    }
-
-    public String getSku() {
-        return sku;
-    }
-
-    public void setSku(String sku) {
-        this.sku = sku;
     }
 
     public Integer getVariable() {

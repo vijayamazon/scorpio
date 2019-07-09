@@ -32,7 +32,6 @@ public class HtmlPageService {
         AmazonEntrySnapshot snapshot = new AmazonEntrySnapshot();
         snapshot.setMarket(entry.getMarket());
         snapshot.setAsin(entry.getAsin());
-        snapshot.setSku(entry.getSku());
         snapshot.setCreateDate(new Date(System.currentTimeMillis()));
         String url = entry.getUrl() + entry.getAsin();
         LOGGER.info("parse {}", url);
