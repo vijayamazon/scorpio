@@ -12,16 +12,16 @@ import java.util.List;
 @Entity
 @Table(name = "amazon_inbound")
 public class AmazonInbound {
-    public static final String STATUS_WORKING = "WORKING";
-    public static final String STATUS_SHIPPED = "SHIPPED";
-    public static final String STATUS_IN_TRANSIT = "IN_TRANSIT";
-    public static final String STATUS_DELIVERED = "DELIVERED";
-    public static final String STATUS_CHECKED_IN = "CHECKED_IN";
-    public static final String STATUS_RECEIVING = "RECEIVING";
-    public static final String STATUS_CLOSED = "CLOSED";
-    public static final String STATUS_CANCELLED = "CANCELLED";
-    public static final String STATUS_DELETED = "DELETED";
-    public static final String STATUS_ERROR = "ERROR";
+    public static final String STATUS_WORKING = "WORKING";//The shipment was created by the seller, but has not yet shipped.
+    public static final String STATUS_SHIPPED = "SHIPPED";//The shipment was picked up by the carrier.
+    public static final String STATUS_IN_TRANSIT = "IN_TRANSIT";//The carrier has notified the Amazon fulfillment center that it is aware of the shipment.
+    public static final String STATUS_DELIVERED = "DELIVERED";//The shipment was delivered by the carrier to the Amazon fulfillment center.
+    public static final String STATUS_CHECKED_IN = "CHECKED_IN";//The shipment was checked-in at the receiving dock of the Amazon fulfillment center.
+    public static final String STATUS_RECEIVING = "RECEIVING";//The shipment has arrived at the Amazon fulfillment center, but not all items have been marked as received.
+    public static final String STATUS_CLOSED = "CLOSED";//The shipment has arrived at the Amazon fulfillment center and all items have been marked as received.
+    public static final String STATUS_CANCELLED = "CANCELLED";//The shipment was cancelled by the seller after the shipment was sent to Amazon's fulfillment network.
+    public static final String STATUS_DELETED = "DELETED";//The shipment was cancelled by the seller before the shipment was sent to the Amazon fulfillment center.
+    public static final String STATUS_ERROR = "ERROR";//There was an error with the shipment and it was not processed by Amazon.
 
     public AmazonInbound() {
     }
