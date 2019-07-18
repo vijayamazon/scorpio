@@ -7,6 +7,10 @@ import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.data.AmazonInbound;
+import com.onlymaker.scorpio.data.AmazonInboundItem;
+import com.onlymaker.scorpio.data.AmazonInboundItemRepository;
+import com.onlymaker.scorpio.data.AmazonInboundRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,7 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Main.class)
@@ -25,10 +31,14 @@ public class InboundServiceTest {
     AppInfo appInfo;
     @Autowired
     Amazon amazon;
+    @Autowired
+    AmazonInboundRepository amazonInboundRepository;
+    @Autowired
+    AmazonInboundItemRepository amazonInboundItemRepository;
 
     @Before
     public void setup() {
-        inboundService = new InboundService(appInfo, amazon.getList().get(0));
+        inboundService = new InboundService(appInfo, amazon.getList().get(5));
     }
 
     /**
@@ -76,7 +86,7 @@ public class InboundServiceTest {
     @Test
     public void listInboundShipments() {
         ListInboundShipmentsResult result = inboundService
-                .getListInboundShipmentsResponseByStatus(AmazonInbound.COUNTING_STATUS_LIST)
+                .getListInboundShipmentsResponseByStatus(AmazonInbound.IN_PROGRESS_STATUS_LIST)
                 .getListInboundShipmentsResult();
         result.getShipmentData().getMember().forEach(this::print);
         if (result.isSetNextToken()) {
@@ -142,6 +152,40 @@ public class InboundServiceTest {
                     .getListInboundShipmentItemsByNextTokenResult();
             List<InboundShipmentItem> list = nextResult.getItemData().getMember();
             System.out.println(String.format("Size %d, nextToken: %s", list.size(), nextResult.getNextToken()));
+        }
+    }
+
+
+    @Test
+    public void refreshInbound() {
+        System.out.println(inboundService.getMws().getMarketplace());
+        LocalDate date = LocalDate.now();
+        ListInboundShipmentsResult result = inboundService
+                .getListInboundShipmentsResponseUpdatedBetween(date.minusDays(90), date.plusDays(1))
+                .getListInboundShipmentsResult();
+        result.getShipmentData().getMember().forEach(this::updateInboundStatus);
+        String token = result.getNextToken();
+        while (StringUtils.isNotEmpty(token)) {
+            ListInboundShipmentsByNextTokenResult nextResult = inboundService
+                    .getListInboundShipmentsResponseByNextToken(token)
+                    .getListInboundShipmentsByNextTokenResult();
+            nextResult.getShipmentData().getMember().forEach(this::updateInboundStatus);
+            token = nextResult.getNextToken();
+        }
+    }
+
+    private void updateInboundStatus(InboundShipmentInfo shipment) {
+        AmazonInbound inbound = amazonInboundRepository.findByShipmentId(shipment.getShipmentId());
+        if (inbound != null && !Objects.equals(inbound.getStatus(), shipment.getShipmentStatus())) {
+            System.out.println("Updating shipment " + shipment.getShipmentName() + ", status: " + inbound.getStatus() + " -> " + shipment.getShipmentStatus());
+            inbound.setStatus(shipment.getShipmentStatus());
+            inbound.setData(Utils.getJsonString(shipment));
+            amazonInboundRepository.save(inbound);
+            Iterable<AmazonInboundItem> iterable = amazonInboundItemRepository.findAllByShipmentId(shipment.getShipmentId());
+            for (AmazonInboundItem item : iterable) {
+                item.setStatus(shipment.getShipmentStatus());
+                amazonInboundItemRepository.save(item);
+            }
         }
     }
 

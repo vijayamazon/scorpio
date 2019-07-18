@@ -42,18 +42,22 @@ public class InboundService {
     }
 
     public ListInboundShipmentsResponse getListInboundShipmentsResponseUpdatedLastDay() {
+        LocalDate date = LocalDate.now();
+        return getListInboundShipmentsResponseUpdatedBetween(date.minusDays(1), date.plusDays(1));
+    }
+
+    public ListInboundShipmentsResponse getListInboundShipmentsResponseUpdatedBetween(LocalDate after, LocalDate before) {
         forceWaiting(FETCH_INBOUND_INTERVAL_IN_MS);
         ListInboundShipmentsRequest request = new ListInboundShipmentsRequest();
         request.setSellerId(mws.getSellerId());
         request.setMWSAuthToken(mws.getAuthToken());
         List<String> status = new ArrayList<>();
-        status.addAll(AmazonInbound.COUNTING_STATUS_LIST);
-        status.addAll(AmazonInbound.STOP_COUNTING_STATUS_LIST);
+        status.addAll(AmazonInbound.IN_PROGRESS_STATUS_LIST);
+        status.addAll(AmazonInbound.FINAL_STATUS_LIST);
         ShipmentStatusList shipmentStatusList = new ShipmentStatusList(status);
         request.setShipmentStatusList(shipmentStatusList);
-        LocalDate date = LocalDate.now();
-        request.setLastUpdatedAfter(Utils.getXMLGregorianCalendar(date.minusDays(1)));
-        request.setLastUpdatedBefore(Utils.getXMLGregorianCalendar(date.plusDays(1)));
+        request.setLastUpdatedAfter(Utils.getXMLGregorianCalendar(after));
+        request.setLastUpdatedBefore(Utils.getXMLGregorianCalendar(before));
         return getClient().listInboundShipments(request);
     }
 

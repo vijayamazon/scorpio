@@ -34,16 +34,16 @@ public class AmazonInbound {
         createTime = new Timestamp(System.currentTimeMillis());
     }
 
-    public static final List<String> COUNTING_STATUS_LIST = new ArrayList<String>() {{
+    public static final List<String> IN_PROGRESS_STATUS_LIST = new ArrayList<String>() {{
         add(STATUS_WORKING);
         add(STATUS_SHIPPED);
         add(STATUS_IN_TRANSIT);
         add(STATUS_DELIVERED);
         add(STATUS_CHECKED_IN);
+        add(STATUS_RECEIVING);
     }};
 
-    public static final List<String> STOP_COUNTING_STATUS_LIST = new ArrayList<String>() {{
-        add(STATUS_RECEIVING);
+    public static final List<String> FINAL_STATUS_LIST = new ArrayList<String>() {{
         add(STATUS_CLOSED);
         add(STATUS_CANCELLED);
         add(STATUS_DELETED);
