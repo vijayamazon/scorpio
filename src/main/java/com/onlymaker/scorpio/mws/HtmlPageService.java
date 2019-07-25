@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 @Service
 public class HtmlPageService {
     private static final Logger LOGGER = LoggerFactory.getLogger(HtmlPageService.class);
-    private static final String CHROME_UA = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36";
+    private static final String CHROME_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36";
 
     @Autowired
     AmazonAsinRepository amazonAsinRepository;
@@ -36,7 +36,7 @@ public class HtmlPageService {
         String url = entry.getUrl() + entry.getAsin();
         LOGGER.info("parse {}", url);
         HttpConnection connection = (HttpConnection) Jsoup.connect(url);
-        Document document = connection.validateTLSCertificates(false).userAgent(CHROME_UA).get();
+        Document document = connection.userAgent(CHROME_UA).get();
         String rank = document.select("#SalesRank").text();
         LOGGER.info("rank: {}", rank);
         snapshot.setRankBest(matchRankBest(rank, snapshot.getMarket()));
@@ -73,7 +73,7 @@ public class HtmlPageService {
                     if (i > 0) {
                         String asin = color.attr("data-defaultasin");
                         connection = (HttpConnection) Jsoup.connect(entry.getUrl() + asin);
-                        document = connection.validateTLSCertificates(false).userAgent(CHROME_UA).get();
+                        document = connection.userAgent(CHROME_UA).get();
                     }
                     parseAsin(entry.getMarket(), entry.getAsin(), color.select("img").get(0).attr("alt"), document);
                 } catch (Throwable t) {

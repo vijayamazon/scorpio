@@ -7,8 +7,8 @@ buildscript {
 
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '2.1.5.RELEASE'
-    id 'io.spring.dependency-management' version '1.0.7.RELEASE'
+    id 'org.springframework.boot' version '2.1.6.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.8.RELEASE'
 }
 
 repositories {
@@ -18,7 +18,7 @@ repositories {
 
 ext {
     APP = 'scorpio'
-    VERSION = '3.3.5'
+    VERSION = '3.3.6'
 }
 
 bootJar {
@@ -32,9 +32,9 @@ dependencies {
             'org.springframework.boot:spring-boot-devtools',
             'org.springframework.boot:spring-boot-starter-data-jpa',
             'org.springframework.boot:spring-boot-starter-json',
-            'org.apache.httpcomponents:httpclient:4.5.8',
-            'org.apache.commons:commons-lang3:3.8.1',
-            'org.jsoup:jsoup:1.11.3',
+            'org.apache.httpcomponents:httpclient:4.5.9',
+            'org.apache.commons:commons-lang3:3.9',
+            'org.jsoup:jsoup:1.12.1',
             'com.github.albfernandez:juniversalchardet:2.3.0',
             fileTree(dir: 'libs', include: ['*.jar'])
     )
