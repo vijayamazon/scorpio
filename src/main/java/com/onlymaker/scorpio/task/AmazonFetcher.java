@@ -173,6 +173,7 @@ public class AmazonFetcher {
                             amazonInventory.setCreateDate(date);
                             amazonInventory.setAsin(elements[fields.get("asin")]);
                             amazonInventory.setSellerSku(sellerSku);
+                            amazonInventory.setName(elements[fields.get("product-name")]);
                             amazonInventory.setSku(sku);
                             amazonInventory.setSize(size);
                             amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));

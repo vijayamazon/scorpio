@@ -24,6 +24,9 @@ public class AmazonInventory {
     @Column(name = "seller_sku")
     private String sellerSku;
 
+    @Column(name = "name")
+    private String name;
+
     @Column(name = "sku")
     private String sku;
 
@@ -77,6 +80,14 @@ public class AmazonInventory {
 
     public void setSellerSku(String sellerSku) {
         this.sellerSku = sellerSku;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getSku() {
