@@ -416,7 +416,7 @@ public class AmazonFetcher {
                 Map<String, String> map = Utils.parseSellerSku(sellerSku);
                 String sku = map.get("sku");
                 String size = map.get("size");
-                LOGGER.error("{} saving seller sku {}: {} {}", market, sellerSku, sku, size);
+                LOGGER.info("{} saving seller sku {}: {} {}", market, sellerSku, sku, size);
                 amazonSellerSku = new AmazonSellerSku();
                 amazonSellerSku.setMarket(market);
                 amazonSellerSku.setSellerSku(sellerSku);
