@@ -142,7 +142,7 @@ public class AmazonFetcher {
             ReportService reportService = new ReportService(appInfo, mws);
             try {
                 Map<String, Integer> fields = new HashMap<>();
-                File report = new File("/tmp/inventory");
+                File report = new File("/tmp/inventory_" + mws.getMarketplace());
                 List<String> lines = fetchReport(reportService, ReportService.REPORT_TYPE.get("inventory"), report);
                 for (String line : lines) {
                     LOGGER.debug("report line: {}", line);
@@ -195,7 +195,7 @@ public class AmazonFetcher {
             try {
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
                 Map<String, Integer> fields = new HashMap<>();
-                File report = new File("/tmp/receipt");
+                File report = new File("/tmp/receipt_" + mws.getMarketplace());
                 List<String> lines = fetchReport(reportService, ReportService.REPORT_TYPE.get("receipt"), report);
                 for (String line : lines) {
                     LOGGER.debug("report line: {}", line);
