@@ -2,6 +2,8 @@ package com.onlymaker.scorpio.mws;
 
 import com.amazonaws.mws.MarketplaceWebServiceException;
 import com.amazonaws.mws.model.*;
+import com.ibm.icu.text.CharsetDetector;
+import com.ibm.icu.text.CharsetMatch;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
@@ -9,14 +11,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mozilla.universalchardet.UniversalDetector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -28,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest(classes = Main.class)
 public class ReportServiceTest {
     private ReportService reportService;
-    private String reportType = ReportService.REPORT_TYPE.get("receipt");
+    private String reportType = ReportService.REPORT_TYPE.get("inventory");
     @Autowired
     AppInfo appInfo;
     @Autowired
@@ -36,7 +35,7 @@ public class ReportServiceTest {
 
     @Before
     public void setup() {
-        reportService = new ReportService(appInfo, amazon.getList().get(1));
+        reportService = new ReportService(appInfo, amazon.getList().get(0));
     }
 
     /*
@@ -122,16 +121,20 @@ public class ReportServiceTest {
      */
     @Test
     public void getReport() throws MarketplaceWebServiceException, IOException {
-        String id = "15256325366018059";
+        String id = "17705881762018223";
         File report = new File("/tmp/report");
         GetReportRequest request = reportService.prepareGetReport(id, new FileOutputStream(report));
         GetReportResponse response = reportService.getReport(request);
         System.out.println(response.getResponseHeaderMetadata());
         request.getReportOutputStream().close();
-        String encoding = UniversalDetector.detectCharset(report);
+        InputStream inputStream = new BufferedInputStream(new FileInputStream(report));
+        CharsetDetector detector = new CharsetDetector();
+        detector.setText(inputStream);
+        CharsetMatch encoding = detector.detect();
+        inputStream.close();
         if (encoding != null) {
             System.out.println("Detect encoding: " + encoding);
-            Files.readAllLines(report.toPath(), Charset.forName(encoding)).forEach(System.out::println);
+            Files.readAllLines(report.toPath(), Charset.forName(encoding.getName())).forEach(System.out::println);
         } else {
             System.out.println("Default encoding: " + Charset.defaultCharset());
             Files.readAllLines(report.toPath()).forEach(System.out::println);

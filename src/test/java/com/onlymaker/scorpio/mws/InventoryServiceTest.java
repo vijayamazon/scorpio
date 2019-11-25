@@ -93,6 +93,5 @@ public class InventoryServiceTest {
     private void printStock(InventorySupply inventorySupply) {
         System.out.println(String.format("asin: %s, fnSku: %s, sku: %s, quantity:", inventorySupply.getASIN(), inventorySupply.getFNSKU(), inventorySupply.getSellerSKU()));
         System.out.println(String.format("    totalSupply %d, inStockSupply %d", inventorySupply.getTotalSupplyQuantity(), inventorySupply.getInStockSupplyQuantity()));
-
     }
 }

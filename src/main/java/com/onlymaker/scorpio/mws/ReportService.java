@@ -120,7 +120,9 @@ public class ReportService {
             client = new MarketplaceWebServiceClient(mws.getAccessKey(),
                     mws.getSecretKey(),
                     appInfo.getName(),
-                    appInfo.getVersion(), config);
+                    appInfo.getVersion(),
+                    config
+            );
         }
         return client;
     }

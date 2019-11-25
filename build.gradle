@@ -18,7 +18,7 @@ repositories {
 
 ext {
     APP = 'scorpio'
-    VERSION = '3.3.7-1'
+    VERSION = '3.3.8'
 }
 
 bootJar {
@@ -35,13 +35,16 @@ dependencies {
             'org.apache.httpcomponents:httpclient:4.5.9',
             'org.apache.commons:commons-lang3:3.9',
             'org.jsoup:jsoup:1.12.1',
-            'com.github.albfernandez:juniversalchardet:2.3.0',
+            'com.ibm.icu:icu4j:65.1',
             fileTree(dir: 'libs', include: ['*.jar'])
     )
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 
-    runtime 'mysql:mysql-connector-java'
+    runtime (
+            'mysql:mysql-connector-java',
+            'org.glassfish.jaxb:jaxb-runtime'
+    )
 
     testCompile (
             'org.springframework.boot:spring-boot-starter-test'

@@ -6,6 +6,8 @@ import com.amazonaws.mws.model.ReportRequestInfo;
 import com.amazonaws.mws.model.RequestReportResponse;
 import com.amazonservices.mws.FulfillmentInboundShipment._2010_10_01.model.*;
 import com.amazonservices.mws.orders._2013_09_01.model.*;
+import com.ibm.icu.text.CharsetDetector;
+import com.ibm.icu.text.CharsetMatch;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
@@ -15,7 +17,6 @@ import com.onlymaker.scorpio.mws.OrderService;
 import com.onlymaker.scorpio.mws.ReportService;
 import com.onlymaker.scorpio.mws.Utils;
 import org.apache.commons.lang3.StringUtils;
-import org.mozilla.universalchardet.UniversalDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,10 +24,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -243,18 +242,18 @@ public class AmazonFetcher {
                     GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
                     reportService.getReport(request);
                     request.getReportOutputStream().close();
-                    String encoding = UniversalDetector.detectCharset(report);
+                    //check encoding
+                    InputStream inputStream = new BufferedInputStream(new FileInputStream(report));
+                    CharsetDetector detector = new CharsetDetector();
+                    detector.setText(inputStream);
+                    CharsetMatch encoding = detector.detect();
+                    inputStream.close();
                     if (encoding != null) {
-                        LOGGER.debug("report detect encoding: {}", encoding);
-                        lines = Files.readAllLines(report.toPath(), Charset.forName(encoding));
+                        LOGGER.debug("report detect encoding: {}", encoding.getName());
+                        lines = Files.readAllLines(report.toPath(), Charset.forName(encoding.getName()));
                     } else {
-                        try {
-                            LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
-                            lines = Files.readAllLines(report.toPath());
-                        } catch (Exception $t) {
-                            LOGGER.debug("report try 8859-1 encoding: {}", StandardCharsets.ISO_8859_1);
-                            lines = Files.readAllLines(report.toPath());
-                        }
+                        LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
+                        lines = Files.readAllLines(report.toPath());
                     }
                     log.setReportId(reportId);
                 }
