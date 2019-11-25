@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -247,8 +248,13 @@ public class AmazonFetcher {
                         LOGGER.debug("report detect encoding: {}", encoding);
                         lines = Files.readAllLines(report.toPath(), Charset.forName(encoding));
                     } else {
-                        LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
-                        lines = Files.readAllLines(report.toPath());
+                        try {
+                            LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
+                            lines = Files.readAllLines(report.toPath());
+                        } catch (Exception $t) {
+                            LOGGER.debug("report try 8859-1 encoding: {}", StandardCharsets.ISO_8859_1);
+                            lines = Files.readAllLines(report.toPath());
+                        }
                     }
                     log.setReportId(reportId);
                 }
