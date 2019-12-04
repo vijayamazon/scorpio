@@ -36,3 +36,15 @@ create table amazon_ads
 alter table amazon_ads
     add column calc_spend int unsigned,
     add column calc_sales int unsigned;
+
+drop table if exists amazon_keyword;
+create table amazon_keyword
+(
+    id          bigint unsigned primary key auto_increment,
+    sku         varchar(100) not null default '',
+    keyword     varchar(500) not null default '',
+    index (sku),
+    index (keyword(20))
+) engine = InnoDB
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci;
