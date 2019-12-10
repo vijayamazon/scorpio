@@ -28,13 +28,14 @@ public class HtmlPageService {
     @Autowired
     AmazonAsinRepository amazonAsinRepository;
 
-    public AmazonEntrySnapshot parse(AmazonEntry entry) throws IOException {
+    public AmazonEntrySnapshot parse(AmazonEntry entry) throws IOException, InterruptedException {
         AmazonEntrySnapshot snapshot = new AmazonEntrySnapshot();
         snapshot.setMarket(entry.getMarket());
         snapshot.setAsin(entry.getAsin());
         snapshot.setCreateDate(new Date(System.currentTimeMillis()));
         String url = entry.getUrl() + entry.getAsin();
         LOGGER.info("parse {}", url);
+        Thread.sleep((long)(Math.random() * 10000));
         HttpConnection connection = (HttpConnection) Jsoup.connect(url);
         Document document = connection.userAgent(CHROME_UA).get();
         String rank = document.select("#SalesRank").text();
@@ -72,6 +73,7 @@ public class HtmlPageService {
                 try {
                     if (i > 0) {
                         String asin = color.attr("data-defaultasin");
+                        Thread.sleep((long)(Math.random() * 10000));
                         connection = (HttpConnection) Jsoup.connect(entry.getUrl() + asin);
                         document = connection.userAgent(CHROME_UA).get();
                     }
