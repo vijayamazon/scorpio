@@ -28,7 +28,6 @@ amazon:
       secret-key: secretKey
 
 fetcher:
-  html: "0 0 0 * * *"
   mws: "0 0 12 * * *"
   order:
     retrospect:
