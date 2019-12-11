@@ -1,7 +1,6 @@
 package com.onlymaker.scorpio.mws;
 
 import com.onlymaker.scorpio.Main;
-import com.onlymaker.scorpio.data.AmazonEntry;
 import com.onlymaker.scorpio.data.AmazonEntryRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,11 +19,7 @@ public class HtmlPageServiceTest {
     AmazonEntryRepository amazonEntryRepository;
 
     @Test
-    public void fetch() throws IOException {
-        Iterable<AmazonEntry> i = amazonEntryRepository.findByStatusOrderByMarketAscAsin(AmazonEntry.STATUS_ENABLED);
-        if (i.iterator().hasNext()) {
-            AmazonEntry entry = i.iterator().next();
-            htmlPageService.parse(entry);
-        }
+    public void fetch() throws IOException, InterruptedException {
+        htmlPageService.parse(amazonEntryRepository.findByAsin("B07K2Y5SV6"));
     }
 }

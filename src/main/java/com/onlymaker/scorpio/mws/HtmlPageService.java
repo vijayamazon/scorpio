@@ -34,7 +34,7 @@ public class HtmlPageService {
         snapshot.setAsin(entry.getAsin());
         snapshot.setCreateDate(new Date(System.currentTimeMillis()));
         String url = entry.getUrl() + entry.getAsin();
-        LOGGER.info("parse {}", url);
+        LOGGER.info("fetch: {}", url);
         Thread.sleep((long)(Math.random() * 10000));
         HttpConnection connection = (HttpConnection) Jsoup.connect(url);
         Document document = connection.userAgent(CHROME_UA).get();
@@ -73,6 +73,7 @@ public class HtmlPageService {
                 try {
                     if (i > 0) {
                         String asin = color.attr("data-defaultasin");
+                        LOGGER.info("asin: " + entry.getUrl() + asin);
                         Thread.sleep((long)(Math.random() * 10000));
                         connection = (HttpConnection) Jsoup.connect(entry.getUrl() + asin);
                         document = connection.userAgent(CHROME_UA).get();
