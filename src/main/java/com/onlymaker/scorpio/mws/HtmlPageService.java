@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 @Service
 public class HtmlPageService {
     private static final Logger LOGGER = LoggerFactory.getLogger(HtmlPageService.class);
-    private static final String CHROME_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36";
+    private static final String CHROME_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36";
 
     @Autowired
     AmazonAsinRepository amazonAsinRepository;
