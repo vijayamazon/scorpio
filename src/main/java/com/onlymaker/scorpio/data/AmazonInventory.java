@@ -39,6 +39,9 @@ public class AmazonInventory {
     @Column(name = "total_quantity")
     private Integer totalQuantity;
 
+    @Column(name = "data")
+    private String data;
+
     @Column(name = "create_date")
     private Date createDate;
 
@@ -120,6 +123,14 @@ public class AmazonInventory {
 
     public void setTotalQuantity(Integer totalQuantity) {
         this.totalQuantity = totalQuantity;
+    }
+
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
     }
 
     public Date getCreateDate() {

@@ -154,7 +154,7 @@ public class AmazonFetcher {
                         }
                     } else {
                         String market = mws.getMarketplace();
-                        String fnSku = elements[fields.get("fnsku")];
+                        String asin = elements[fields.get("asin")];
                         String sellerSku = elements[fields.get("sku")];
                         String sku = "";
                         String size = "";
@@ -164,22 +164,23 @@ public class AmazonFetcher {
                             size = amazonSellerSku.getSize();
                         }
                         Date date = new Date(System.currentTimeMillis());
-                        AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndFnSkuAndCreateDate(market, fnSku, date);
+                        AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndAsinAndCreateDate(market, asin, date);
                         if (amazonInventory == null) {
-                            LOGGER.info("{} saving inventory: {}", market, sellerSku);
                             amazonInventory = new AmazonInventory();
-                            amazonInventory.setMarket(market);
-                            amazonInventory.setFnSku(fnSku);
-                            amazonInventory.setCreateDate(date);
-                            amazonInventory.setAsin(elements[fields.get("asin")]);
-                            amazonInventory.setSellerSku(sellerSku);
-                            amazonInventory.setName(elements[fields.get("product-name")]);
-                            amazonInventory.setSku(sku);
-                            amazonInventory.setSize(size);
-                            amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
-                            amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
-                            amazonInventoryRepository.save(amazonInventory);
                         }
+                        LOGGER.info("{} saving inventory: {}", market, sellerSku);
+                        amazonInventory.setMarket(market);
+                        amazonInventory.setAsin(asin);
+                        amazonInventory.setCreateDate(date);
+                        amazonInventory.setFnSku(elements[fields.get("fnsku")]);
+                        amazonInventory.setSellerSku(sellerSku);
+                        amazonInventory.setName(elements[fields.get("product-name")]);
+                        amazonInventory.setSku(sku);
+                        amazonInventory.setSize(size);
+                        amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
+                        amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
+                        amazonInventory.setData(line);
+                        amazonInventoryRepository.save(amazonInventory);
                     }
                 }
             } catch (Throwable t) {

@@ -63,3 +63,21 @@ create table amazon_ads_report
 ) engine = InnoDB
   default charset = utf8mb4
   collate = utf8mb4_unicode_ci;
+
+drop table if exists amazon_entry_2;
+create table amazon_entry_2
+(
+    id     bigint unsigned primary key auto_increment,
+    market varchar(10)         not null,
+    asin   varchar(50)         not null,
+    status tinyint(1) unsigned not null,
+    date   date                not null,
+    index (market),
+    index (asin),
+    index (date)
+) engine = InnoDB
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci;
+
+alter table amazon_inventory add column data text;
+alter table amazon_inventory add index (market);
