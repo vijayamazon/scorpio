@@ -12,11 +12,9 @@ import java.util.*;
 
 public class ReportService {
     public static final Map<String, String> REPORT_TYPE = new HashMap<String, String>() {{
-        put("order", "_GET_FLAT_FILE_ORDERS_DATA_");
-        put("performance", "_GET_V1_SELLER_PERFORMANCE_REPORT_");
+        put("fba_return", "_GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA_");
         put("inventory", "_GET_FBA_MYI_UNSUPPRESSED_INVENTORY_DATA_");
         put("receipt", "_GET_FBA_FULFILLMENT_INVENTORY_RECEIPTS_DATA_");
-        put("amazon_fulfilled", "_GET_AMAZON_FULFILLED_SHIPMENTS_DATA_");
     }};
     private MarketplaceWebServiceClient client;
     private AppInfo appInfo;

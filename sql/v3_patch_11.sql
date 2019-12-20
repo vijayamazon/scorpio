@@ -81,3 +81,37 @@ create table amazon_entry_2
 
 alter table amazon_inventory add column data text;
 alter table amazon_inventory add index (market);
+
+drop table if exists amazon_fba_return;
+create table amazon_fba_return
+(
+    id                    bigint unsigned primary key auto_increment,
+    market                varchar(10)  not null,
+    date                  date,
+    time                  timestamp,
+    order_id              varchar(20)  not null,
+    seller_sku            varchar(100) not null,
+    asin                  varchar(20)  not null,
+    fn_sku                varchar(20),
+    product_name          varchar(1000),
+    quantity              tinyint unsigned,
+    fulfillment_center_id varchar(20),
+    detailed_disposition  varchar(100),
+    reason                varchar(500),
+    status                varchar(100),
+    license_plate_number  varchar(100),
+    customer_comments     text,
+    sku                   varchar(50) default '',
+    size                  varchar(10) default '',
+    index (market),
+    index (date),
+    index (order_id),
+    index (asin),
+    index (seller_sku),
+    index (detailed_disposition),
+    index (reason),
+    index (sku),
+    index (size)
+) engine = InnoDB
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci;

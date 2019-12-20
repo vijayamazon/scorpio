@@ -47,7 +47,7 @@ public class AmazonFetcher {
     @Autowired
     AmazonInventoryRepository amazonInventoryRepository;
     @Autowired
-    AmazonReportLogRepository amazonReportLogRepository;
+    AmazonFBAReturnRepository amazonFBAReturnRepository;
     @Autowired
     AmazonSellerSkuRepository amazonSellerSkuRepository;
     @Autowired
@@ -59,11 +59,13 @@ public class AmazonFetcher {
     public void run() {
         LOGGER.info("run fetcher ...");
         fetchInventoryReport();
+        fetchFbaReturnReport();
         fetchReceiptReport();
         fetchOrder();
         fetchInbound();
         requestReport(ReportService.REPORT_TYPE.get("inventory"));
         requestReport(ReportService.REPORT_TYPE.get("receipt"));
+        requestReport(ReportService.REPORT_TYPE.get("fba_return"));
     }
 
     private void fetchOrder() {
@@ -123,11 +125,7 @@ public class AmazonFetcher {
             List<ReportInfo> list = response.getGetReportListResult().getReportInfoList();
             if (!list.isEmpty()) {
                 ReportInfo latest = list.get(0);
-                long reportTime = latest.getAvailableDate().toGregorianCalendar().getTimeInMillis();
-                long systemTime = System.currentTimeMillis();
-                if ((systemTime - reportTime) < 86400000) {
-                    return latest.getReportId();
-                }
+                return latest.getReportId();
             }
         } catch (Throwable t) {
             LOGGER.error("{} request reportList {} error: {}", mws.getMarketplace(), type, t.getMessage(), t);
@@ -186,6 +184,76 @@ public class AmazonFetcher {
                     }
                 } catch (Throwable t) {
                     LOGGER.error("{} fetch inventory report error: {}", mws.getMarketplace(), t.getMessage(), t);
+                }
+            }
+        }
+    }
+
+    private void fetchFbaReturnReport() {
+        List<MarketWebService> list = amazon.getList();
+        for (MarketWebService mws : list) {
+            ReportService reportService = new ReportService(appInfo, mws);
+            String id = getLatestReportId(mws, ReportService.REPORT_TYPE.get("fba_return"));
+            if (StringUtils.isNotEmpty(id)) {
+                try {
+                    SimpleDateFormat f1 = new SimpleDateFormat("yyyy-MM-dd");
+                    SimpleDateFormat f2 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                    Map<String, Integer> fields = new HashMap<>();
+                    File report = new File("/tmp/fba_return_" + mws.getMarketplace());
+                    List<String> lines = fetchReport(reportService, id, report);
+                    for (String line : lines) {
+                        LOGGER.debug("report line: {}", line);
+                        if (line.endsWith(",")) {
+                            line += "\"\"";
+                        }
+                        String[] elements = line.substring(1, line.length() - 1).split("\",\"", -1);
+                        //"return-date","order-id","sku","asin","fnsku","product-name","quantity","fulfillment-center-id","detailed-disposition","reason","status","license-plate-number","customer-comments"
+                        if (fields.isEmpty()) {
+                            for (int i = 0; i < elements.length; i++) {
+                                fields.put(elements[i], i);
+                            }
+                        } else {
+                            String market = mws.getMarketplace();
+                            String returnDate = elements[fields.get("return-date")];
+                            Date date = new Date(f1.parse(returnDate.split("T")[0]).getTime());
+                            Timestamp time = new Timestamp(f2.parse((returnDate.split("\\+")[0])).getTime());
+                            String orderId = elements[fields.get("order-id")];
+                            String asin = elements[fields.get("asin")];
+                            String sellerSku = elements[fields.get("sku")];
+                            String sku = "";
+                            String size = "";
+                            AmazonSellerSku amazonSellerSku = saveAmazonSellerSku(market, sellerSku);
+                            if (amazonSellerSku != null) {
+                                sku = amazonSellerSku.getSku();
+                                size = amazonSellerSku.getSize();
+                            }
+                            AmazonFBAReturn amazonFBAReturn = amazonFBAReturnRepository.findOneByMarketAndTimeAndOrderIdAndAsin(market, time, orderId, asin);
+                            if (amazonFBAReturn == null) {
+                                amazonFBAReturn = new AmazonFBAReturn();
+                                amazonFBAReturn.setMarket(market);
+                                amazonFBAReturn.setDate(date);
+                                amazonFBAReturn.setTime(time);
+                                amazonFBAReturn.setOrderId(orderId);
+                                amazonFBAReturn.setAsin(asin);
+                            }
+                            LOGGER.info("{} saving fba return: {}", market, sellerSku);
+                            amazonFBAReturn.setSellerSku(sellerSku);
+                            amazonFBAReturn.setSku(sku);
+                            amazonFBAReturn.setSize(size);
+                            amazonFBAReturn.setFnSku(elements[fields.get("fnsku")]);
+                            amazonFBAReturn.setProductName(elements[fields.get("product-name")]);
+                            amazonFBAReturn.setQuantity(Integer.parseInt(elements[fields.get("quantity")]));
+                            amazonFBAReturn.setFulfillmentCenterId(elements[fields.get("fulfillment-center-id")]);
+                            amazonFBAReturn.setDetailedDisposition(elements[fields.get("detailed-disposition")]);
+                            amazonFBAReturn.setReason(elements[fields.get("reason")]);
+                            amazonFBAReturn.setStatus(elements[fields.get("status")]);
+                            amazonFBAReturn.setLicensePlateNumber(elements[fields.get("license-plate-number")]);
+                            amazonFBAReturn.setCustomerComments(elements[fields.get("customer-comments")]);
+                            amazonFBAReturnRepository.save(amazonFBAReturn);
+                        }
+                    }
+                } catch (Throwable t) {
+                    LOGGER.error("{} fetch fba return report error: {}", mws.getMarketplace(), t.getMessage(), t);
                 }
             }
         }
