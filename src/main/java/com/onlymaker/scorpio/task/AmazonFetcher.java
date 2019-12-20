@@ -1,9 +1,6 @@
 package com.onlymaker.scorpio.task;
 
-import com.amazonaws.mws.model.GetReportRequest;
-import com.amazonaws.mws.model.GetReportRequestListResponse;
-import com.amazonaws.mws.model.ReportRequestInfo;
-import com.amazonaws.mws.model.RequestReportResponse;
+import com.amazonaws.mws.model.*;
 import com.amazonservices.mws.FulfillmentInboundShipment._2010_10_01.model.*;
 import com.amazonservices.mws.orders._2013_09_01.model.*;
 import com.ibm.icu.text.CharsetDetector;
@@ -30,7 +27,6 @@ import java.nio.file.Files;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,14 +56,14 @@ public class AmazonFetcher {
     AmazonInboundItemRepository amazonInboundItemRepository;
 
     @Scheduled(cron = "${fetcher.mws}")
-    public void everyday() {
+    public void run() {
         LOGGER.info("run fetcher ...");
-        requestInventoryReport();
-        requestReceiptReport();
-        fetchOrder();
-        fetchInbound();
         fetchInventoryReport();
         fetchReceiptReport();
+        fetchOrder();
+        fetchInbound();
+        requestReport(ReportService.REPORT_TYPE.get("inventory"));
+        requestReport(ReportService.REPORT_TYPE.get("receipt"));
     }
 
     private void fetchOrder() {
@@ -106,14 +102,6 @@ public class AmazonFetcher {
         }
     }
 
-    private void requestInventoryReport() {
-        requestReport(ReportService.REPORT_TYPE.get("inventory"));
-    }
-
-    private void requestReceiptReport() {
-        requestReport(ReportService.REPORT_TYPE.get("receipt"));
-    }
-
     private void requestReport(String type) {
         List<MarketWebService> list = amazon.getList();
         for (MarketWebService mws : list) {
@@ -122,69 +110,83 @@ public class AmazonFetcher {
                 RequestReportResponse requestReportResponse = reportService.requestReport(type);
                 ReportRequestInfo requestInfo = requestReportResponse.getRequestReportResult().getReportRequestInfo();
                 LOGGER.info("Request {}, id: {}", type, requestInfo.getReportRequestId());
-                AmazonReportLog amazonReportLog = new AmazonReportLog();
-                amazonReportLog.setRequestId(requestInfo.getReportRequestId());
-                String generatedReportId = requestInfo.getGeneratedReportId();
-                amazonReportLog.setReportId(generatedReportId == null ? "" : generatedReportId);
-                amazonReportLog.setReportType(type);
-                amazonReportLog.setStatus(0);
-                amazonReportLog.setCreateTime(new Timestamp(requestInfo.getSubmittedDate().toGregorianCalendar().getTimeInMillis()));
-                amazonReportLogRepository.save(amazonReportLog);
             } catch (Throwable t) {
                 LOGGER.error("{} request {} error: {}", mws.getMarketplace(), type, t.getMessage(), t);
             }
         }
     }
 
+    private String getLatestReportId(MarketWebService mws, String type) {
+        ReportService reportService = new ReportService(appInfo, mws);
+        try {
+            GetReportListResponse response = reportService.getReportList(type);
+            List<ReportInfo> list = response.getGetReportListResult().getReportInfoList();
+            if (!list.isEmpty()) {
+                ReportInfo latest = list.get(0);
+                long reportTime = latest.getAvailableDate().toGregorianCalendar().getTimeInMillis();
+                long systemTime = System.currentTimeMillis();
+                if ((systemTime - reportTime) < 86400000) {
+                    return latest.getReportId();
+                }
+            }
+        } catch (Throwable t) {
+            LOGGER.error("{} request reportList {} error: {}", mws.getMarketplace(), type, t.getMessage(), t);
+        }
+        return null;
+    }
+
     private void fetchInventoryReport() {
         List<MarketWebService> list = amazon.getList();
         for (MarketWebService mws : list) {
             ReportService reportService = new ReportService(appInfo, mws);
-            try {
-                Map<String, Integer> fields = new HashMap<>();
-                File report = new File("/tmp/inventory_" + mws.getMarketplace());
-                List<String> lines = fetchReport(reportService, ReportService.REPORT_TYPE.get("inventory"), report);
-                for (String line : lines) {
-                    LOGGER.debug("report line: {}", line);
-                    String[] elements = line.split("\t");
-                    //sku	fnsku	asin	product-name	condition	your-price	mfn-listing-exists	mfn-fulfillable-quantity	afn-listing-exists	afn-warehouse-quantity	afn-fulfillable-quantity	afn-unsellable-quantity	afn-reserved-quantity	afn-total-quantity	per-unit-volume	afn-inbound-working-quantity	afn-inbound-shipped-quantity	afn-inbound-receiving-quantity
-                    if (line.startsWith("sku")) {
-                        for (int i = 0; i < elements.length; i++) {
-                            fields.put(elements[i], i);
+            String id = getLatestReportId(mws, ReportService.REPORT_TYPE.get("inventory"));
+            if (StringUtils.isNotEmpty(id)) {
+                try {
+                    Map<String, Integer> fields = new HashMap<>();
+                    File report = new File("/tmp/inventory_" + mws.getMarketplace());
+                    List<String> lines = fetchReport(reportService, id, report);
+                    for (String line : lines) {
+                        LOGGER.debug("report line: {}", line);
+                        String[] elements = line.split("\t");
+                        //sku	fnsku	asin	product-name	condition	your-price	mfn-listing-exists	mfn-fulfillable-quantity	afn-listing-exists	afn-warehouse-quantity	afn-fulfillable-quantity	afn-unsellable-quantity	afn-reserved-quantity	afn-total-quantity	per-unit-volume	afn-inbound-working-quantity	afn-inbound-shipped-quantity	afn-inbound-receiving-quantity
+                        if (line.startsWith("sku")) {
+                            for (int i = 0; i < elements.length; i++) {
+                                fields.put(elements[i], i);
+                            }
+                        } else {
+                            String market = mws.getMarketplace();
+                            String asin = elements[fields.get("asin")];
+                            String sellerSku = elements[fields.get("sku")];
+                            String sku = "";
+                            String size = "";
+                            AmazonSellerSku amazonSellerSku = saveAmazonSellerSku(market, sellerSku);
+                            if (amazonSellerSku != null) {
+                                sku = amazonSellerSku.getSku();
+                                size = amazonSellerSku.getSize();
+                            }
+                            Date date = new Date(System.currentTimeMillis());
+                            AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndAsinAndCreateDate(market, asin, date);
+                            if (amazonInventory == null) {
+                                amazonInventory = new AmazonInventory();
+                            }
+                            LOGGER.info("{} saving inventory: {}", market, sellerSku);
+                            amazonInventory.setMarket(market);
+                            amazonInventory.setAsin(asin);
+                            amazonInventory.setCreateDate(date);
+                            amazonInventory.setFnSku(elements[fields.get("fnsku")]);
+                            amazonInventory.setSellerSku(sellerSku);
+                            amazonInventory.setName(elements[fields.get("product-name")]);
+                            amazonInventory.setSku(sku);
+                            amazonInventory.setSize(size);
+                            amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
+                            amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
+                            amazonInventory.setData(line);
+                            amazonInventoryRepository.save(amazonInventory);
                         }
-                    } else {
-                        String market = mws.getMarketplace();
-                        String asin = elements[fields.get("asin")];
-                        String sellerSku = elements[fields.get("sku")];
-                        String sku = "";
-                        String size = "";
-                        AmazonSellerSku amazonSellerSku = saveAmazonSellerSku(market, sellerSku);
-                        if (amazonSellerSku != null) {
-                            sku = amazonSellerSku.getSku();
-                            size = amazonSellerSku.getSize();
-                        }
-                        Date date = new Date(System.currentTimeMillis());
-                        AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndAsinAndCreateDate(market, asin, date);
-                        if (amazonInventory == null) {
-                            amazonInventory = new AmazonInventory();
-                        }
-                        LOGGER.info("{} saving inventory: {}", market, sellerSku);
-                        amazonInventory.setMarket(market);
-                        amazonInventory.setAsin(asin);
-                        amazonInventory.setCreateDate(date);
-                        amazonInventory.setFnSku(elements[fields.get("fnsku")]);
-                        amazonInventory.setSellerSku(sellerSku);
-                        amazonInventory.setName(elements[fields.get("product-name")]);
-                        amazonInventory.setSku(sku);
-                        amazonInventory.setSize(size);
-                        amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
-                        amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
-                        amazonInventory.setData(line);
-                        amazonInventoryRepository.save(amazonInventory);
                     }
+                } catch (Throwable t) {
+                    LOGGER.error("{} fetch inventory report error: {}", mws.getMarketplace(), t.getMessage(), t);
                 }
-            } catch (Throwable t) {
-                LOGGER.error("{} fetch inventory report error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
@@ -193,74 +195,63 @@ public class AmazonFetcher {
         List<MarketWebService> list = amazon.getList();
         for (MarketWebService mws : list) {
             ReportService reportService = new ReportService(appInfo, mws);
-            try {
-                SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-                Map<String, Integer> fields = new HashMap<>();
-                File report = new File("/tmp/receipt_" + mws.getMarketplace());
-                List<String> lines = fetchReport(reportService, ReportService.REPORT_TYPE.get("receipt"), report);
-                for (String line : lines) {
-                    LOGGER.debug("report line: {}", line);
-                    String[] elements = line.split("\t");
-                    //received-date	fnsku	sku	product-name	quantity	fba-shipment-id	fulfillment-center-id
-                    if (line.startsWith("received-date")) {
-                        for (int i = 0; i < elements.length; i++) {
-                            fields.put(elements[i], i);
-                        }
-                    } else {
-                        String receiveDate = elements[fields.get("received-date")];
-                        String shipmentId = elements[fields.get("fba-shipment-id")];
-                        LOGGER.info("{} receive date is {}", shipmentId, receiveDate);
-                        AmazonInbound inbound = amazonInboundRepository.findByShipmentId(shipmentId);
-                        if (inbound != null && inbound.getReceiveDate() == null) {
-                            String[] datetime = receiveDate.split("T");
-                            Date date = new Date(formatter.parse(datetime[0]).getTime());
-                            inbound.setReceiveDate(date);
-                            amazonInboundRepository.save(inbound);
-                            Iterable<AmazonInboundItem> iterable = amazonInboundItemRepository.findAllByShipmentId(shipmentId);
-                            for (AmazonInboundItem item : iterable) {
-                                item.setReceiveDate(date);
-                                amazonInboundItemRepository.save(item);
+            String id = getLatestReportId(mws, ReportService.REPORT_TYPE.get("receipt"));
+            if (StringUtils.isNotEmpty(id)) {
+                try {
+                    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+                    Map<String, Integer> fields = new HashMap<>();
+                    File report = new File("/tmp/receipt_" + mws.getMarketplace());
+                    List<String> lines = fetchReport(reportService, id, report);
+                    for (String line : lines) {
+                        LOGGER.debug("report line: {}", line);
+                        String[] elements = line.split("\t");
+                        //received-date	fnsku	sku	product-name	quantity	fba-shipment-id	fulfillment-center-id
+                        if (line.startsWith("received-date")) {
+                            for (int i = 0; i < elements.length; i++) {
+                                fields.put(elements[i], i);
+                            }
+                        } else {
+                            String receiveDate = elements[fields.get("received-date")];
+                            String shipmentId = elements[fields.get("fba-shipment-id")];
+                            LOGGER.info("{} receive date is {}", shipmentId, receiveDate);
+                            AmazonInbound inbound = amazonInboundRepository.findByShipmentId(shipmentId);
+                            if (inbound != null && inbound.getReceiveDate() == null) {
+                                String[] datetime = receiveDate.split("T");
+                                Date date = new Date(formatter.parse(datetime[0]).getTime());
+                                inbound.setReceiveDate(date);
+                                amazonInboundRepository.save(inbound);
+                                Iterable<AmazonInboundItem> iterable = amazonInboundItemRepository.findAllByShipmentId(shipmentId);
+                                for (AmazonInboundItem item : iterable) {
+                                    item.setReceiveDate(date);
+                                    amazonInboundItemRepository.save(item);
+                                }
                             }
                         }
                     }
+                } catch (Throwable t) {
+                    LOGGER.error("{} fetch receipt report error: {}", mws.getMarketplace(), t.getMessage(), t);
                 }
-            } catch (Throwable t) {
-                LOGGER.error("{} fetch receipt report error: {}", mws.getMarketplace(), t.getMessage(), t);
             }
         }
     }
 
-    private List<String> fetchReport(ReportService reportService, String type, File report) throws Exception {
-        List<String> lines = new ArrayList<>();
-        GetReportRequestListResponse reportRequestListResponse = reportService.getReportRequestListCompleted(type);
-        List<ReportRequestInfo> reportRequestInfos = reportRequestListResponse.getGetReportRequestListResult().getReportRequestInfoList();
-        for (ReportRequestInfo reportRequestInfo : reportRequestInfos) {
-            AmazonReportLog log = amazonReportLogRepository.findOneByRequestIdAndStatus(reportRequestInfo.getReportRequestId(), 0);
-            if (log != null) {
-                // _CANCELLED_, _DONE_NO_DATA_ will return null generatedReportId
-                if (reportRequestInfo.getReportProcessingStatus().equals("_DONE_")) {
-                    String reportId = reportRequestInfo.getGeneratedReportId();
-                    GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
-                    reportService.getReport(request);
-                    request.getReportOutputStream().close();
-                    //check encoding
-                    InputStream inputStream = new BufferedInputStream(new FileInputStream(report));
-                    CharsetDetector detector = new CharsetDetector();
-                    detector.setText(inputStream);
-                    CharsetMatch encoding = detector.detect();
-                    inputStream.close();
-                    if (encoding != null) {
-                        LOGGER.debug("report detect encoding: {}", encoding.getName());
-                        lines = Files.readAllLines(report.toPath(), Charset.forName(encoding.getName()));
-                    } else {
-                        LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
-                        lines = Files.readAllLines(report.toPath());
-                    }
-                    log.setReportId(reportId);
-                }
-                log.setStatus(1);
-                amazonReportLogRepository.save(log);
-            }
+    private List<String> fetchReport(ReportService reportService, String reportId, File report) throws Exception {
+        List<String> lines;
+        GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
+        reportService.getReport(request);
+        request.getReportOutputStream().close();
+        //check encoding
+        InputStream inputStream = new BufferedInputStream(new FileInputStream(report));
+        CharsetDetector detector = new CharsetDetector();
+        detector.setText(inputStream);
+        CharsetMatch encoding = detector.detect();
+        inputStream.close();
+        if (encoding != null) {
+            LOGGER.debug("report detect encoding: {}", encoding.getName());
+            lines = Files.readAllLines(report.toPath(), Charset.forName(encoding.getName()));
+        } else {
+            LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
+            lines = Files.readAllLines(report.toPath());
         }
         return lines;
     }
