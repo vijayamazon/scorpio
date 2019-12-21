@@ -139,3 +139,33 @@ create table amazon_product
 ) engine = InnoDB
   default charset = utf8mb4
   collate = utf8mb4_unicode_ci;
+
+drop table if exists amazon_bz_child_report;
+create table amazon_bz_child_report
+(
+    id                        bigint unsigned primary key auto_increment,
+    market                    varchar(10) not null,
+    date                      date        not null,
+    parent                    varchar(20) not null,
+    asin                      varchar(20) not null,
+    title                     varchar(500),
+    session                   int unsigned,
+    session_percentage        float unsigned,
+    pv                        int unsigned,
+    pv_percentage             float unsigned,
+    buy_box_percentage        float unsigned,
+    units_ordered             int unsigned,
+    unit_session_percentage   float unsigned,
+    ordered_product_sales     int unsigned,
+    ordered_product_sales_raw varchar(100),
+    total_order_items         int unsigned,
+    seller_sku                varchar(100),
+    sku                       varchar(50),
+    size                      varchar(10),
+    index (market),
+    index (parent),
+    index (date),
+    index (asin)
+) engine = InnoDB
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci;
