@@ -13,6 +13,9 @@ import java.util.regex.Pattern;
 
 public class Utils {
     public static Pattern SELLER_SKU = Pattern.compile("(?<sku>\\w*\\d+\\w*)-.*(?<size>US\\d+\\.?\\d?|UK\\d+\\.?\\d?|EU\\d+\\.?\\d?)");
+    public static Pattern MATCHING_PRODUCT_ASIN = Pattern.compile("<ASIN>(?<asin>[^<]*)");
+    public static Pattern MATCHING_PRODUCT_ATTR = Pattern.compile("<ns2:(?<name>[^>]*)>(?<value>[^<]*)");
+    public static Pattern MATCHING_PRODUCT_RANK = Pattern.compile("<ProductCategoryId>(?<name>[^<]*)</ProductCategoryId><Rank>(?<rank>[^<]*)</Rank>");
 
     public static XMLGregorianCalendar getXMLGregorianCalendar(LocalDate date) {
         XMLGregorianCalendar result = MwsUtl.getDTF().newXMLGregorianCalendar();

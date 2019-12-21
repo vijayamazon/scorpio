@@ -9,10 +9,7 @@ import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
 import com.onlymaker.scorpio.data.*;
-import com.onlymaker.scorpio.mws.InboundService;
-import com.onlymaker.scorpio.mws.OrderService;
-import com.onlymaker.scorpio.mws.ReportService;
-import com.onlymaker.scorpio.mws.Utils;
+import com.onlymaker.scorpio.mws.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +27,7 @@ import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class AmazonFetcher {
@@ -49,11 +47,13 @@ public class AmazonFetcher {
     @Autowired
     AmazonFBAReturnRepository amazonFBAReturnRepository;
     @Autowired
-    AmazonSellerSkuRepository amazonSellerSkuRepository;
-    @Autowired
     AmazonInboundRepository amazonInboundRepository;
     @Autowired
     AmazonInboundItemRepository amazonInboundItemRepository;
+    @Autowired
+    AmazonEntryRepository amazonEntryRepository;
+    @Autowired
+    AmazonProductRepository amazonProductRepository;
 
     @Scheduled(cron = "${fetcher.mws}")
     public void run() {
@@ -66,6 +66,7 @@ public class AmazonFetcher {
         requestReport(ReportService.REPORT_TYPE.get("inventory"));
         requestReport(ReportService.REPORT_TYPE.get("receipt"));
         requestReport(ReportService.REPORT_TYPE.get("fba_return"));
+        fetchProduct();
     }
 
     private void fetchOrder() {
@@ -155,13 +156,7 @@ public class AmazonFetcher {
                             String market = mws.getMarketplace();
                             String asin = elements[fields.get("asin")];
                             String sellerSku = elements[fields.get("sku")];
-                            String sku = "";
-                            String size = "";
-                            AmazonSellerSku amazonSellerSku = saveAmazonSellerSku(market, sellerSku);
-                            if (amazonSellerSku != null) {
-                                sku = amazonSellerSku.getSku();
-                                size = amazonSellerSku.getSize();
-                            }
+                            Map<String, String> map = Utils.parseSellerSku(sellerSku);
                             Date date = new Date(System.currentTimeMillis());
                             AmazonInventory amazonInventory = amazonInventoryRepository.findByMarketAndAsinAndCreateDate(market, asin, date);
                             if (amazonInventory == null) {
@@ -174,12 +169,13 @@ public class AmazonFetcher {
                             amazonInventory.setFnSku(elements[fields.get("fnsku")]);
                             amazonInventory.setSellerSku(sellerSku);
                             amazonInventory.setName(elements[fields.get("product-name")]);
-                            amazonInventory.setSku(sku);
-                            amazonInventory.setSize(size);
+                            amazonInventory.setSku(map.get("sku"));
+                            amazonInventory.setSize(map.get("size"));
                             amazonInventory.setInStockQuantity(Integer.parseInt(elements[fields.get("afn-fulfillable-quantity")]));
                             amazonInventory.setTotalQuantity(Integer.parseInt(elements[fields.get("afn-total-quantity")]));
                             amazonInventory.setData(line);
                             amazonInventoryRepository.save(amazonInventory);
+                            updateProduct(market, asin, sellerSku, amazonInventory.getSku(), amazonInventory.getSize());
                         }
                     }
                 } catch (Throwable t) {
@@ -220,13 +216,7 @@ public class AmazonFetcher {
                             String orderId = elements[fields.get("order-id")];
                             String asin = elements[fields.get("asin")];
                             String sellerSku = elements[fields.get("sku")];
-                            String sku = "";
-                            String size = "";
-                            AmazonSellerSku amazonSellerSku = saveAmazonSellerSku(market, sellerSku);
-                            if (amazonSellerSku != null) {
-                                sku = amazonSellerSku.getSku();
-                                size = amazonSellerSku.getSize();
-                            }
+                            Map<String, String> map = Utils.parseSellerSku(sellerSku);
                             AmazonFBAReturn amazonFBAReturn = amazonFBAReturnRepository.findOneByMarketAndTimeAndOrderIdAndAsin(market, time, orderId, asin);
                             if (amazonFBAReturn == null) {
                                 amazonFBAReturn = new AmazonFBAReturn();
@@ -238,8 +228,8 @@ public class AmazonFetcher {
                             }
                             LOGGER.info("{} saving fba return: {}", market, sellerSku);
                             amazonFBAReturn.setSellerSku(sellerSku);
-                            amazonFBAReturn.setSku(sku);
-                            amazonFBAReturn.setSize(size);
+                            amazonFBAReturn.setSku(map.get("sku"));
+                            amazonFBAReturn.setSize(map.get("size"));
                             amazonFBAReturn.setFnSku(elements[fields.get("fnsku")]);
                             amazonFBAReturn.setProductName(elements[fields.get("product-name")]);
                             amazonFBAReturn.setQuantity(Integer.parseInt(elements[fields.get("quantity")]));
@@ -324,6 +314,47 @@ public class AmazonFetcher {
         return lines;
     }
 
+    private void fetchProduct() {
+        List<MarketWebService> list = amazon.getList();
+        for (MarketWebService mws : list) {
+            String market = mws.getMarketplace();
+            ProductService productService = new ProductService(appInfo, mws);
+            try {
+                amazonEntryRepository.findByMarketAndStatus(market, 0).forEach(entry -> {
+                    String parent = entry.getAsin();
+                    LOGGER.info(market + " asin: " + parent);
+                    Map<String, Map<String, String>> map = productService.getProductInfo(parent);
+                    map.forEach(((child, info) -> {
+                        LOGGER.info(market + " child: " + child);
+                        AmazonProduct product = amazonProductRepository.findByMarketAndAsin(market, child);
+                        if (product == null) {
+                            product = new AmazonProduct();
+                            product.setMarket(market);
+                            product.setAsin(child);
+                        }
+                        product.setParent(parent);
+                        product.setTitle(info.get("Title"));
+                        product.setImage(info.get("URL"));
+                        product.setColor(info.get("Color"));
+                        String sellerSku = info.get("Model");
+                        if (StringUtils.isNotEmpty(sellerSku)) {
+                            Map<String, String> result = Utils.parseSellerSku(sellerSku);
+                            product.setSellerSku(sellerSku);
+                            product.setSku(result.get("sku"));
+                            product.setSize(result.get("size"));
+                        } else {
+                            product.setSize(info.get("Size"));
+                        }
+                        amazonProductRepository.save(product);
+                    }));
+                });
+            } catch (Throwable t) {
+                LOGGER.error("{} fetch product error: {}", mws.getMarketplace(), t.getMessage(), t);
+            }
+            LOGGER.info(market + " product finish");
+        }
+    }
+
     private void fetchOrderByCreateTime(OrderService orderService) {
         ListOrdersResult result = orderService.getListOrdersResponseByCreateTimeLastDay().getListOrdersResult();
         processOrderList(orderService, result.getOrders());
@@ -389,13 +420,7 @@ public class AmazonFetcher {
     private void saveOrderItem(AmazonOrder order, OrderItem orderItem) {
         String market = order.getMarket();
         String sellerSku = orderItem.getSellerSKU();
-        String sku = "";
-        String size = "";
-        AmazonSellerSku amazonSellerSku = saveAmazonSellerSku(market, sellerSku);
-        if (amazonSellerSku != null) {
-            sku = amazonSellerSku.getSku();
-            size = amazonSellerSku.getSize();
-        }
+        Map<String, String> map = Utils.parseSellerSku(sellerSku);
         LOGGER.info("{} saving orderItem: {}, {}", market, order.getAmazonOrderId(), orderItem.getOrderItemId());
         AmazonOrderItem amazonOrderItem = new AmazonOrderItem();
         amazonOrderItem.setMarket(market);
@@ -407,11 +432,12 @@ public class AmazonFetcher {
         amazonOrderItem.setQuantity(orderItem.getQuantityOrdered());
         amazonOrderItem.setAsin(orderItem.getASIN());
         amazonOrderItem.setSellerSku(sellerSku);
-        amazonOrderItem.setSku(sku);
-        amazonOrderItem.setSize(size);
+        amazonOrderItem.setSku(map.get("sku"));
+        amazonOrderItem.setSize(map.get("size"));
         amazonOrderItem.setData(Utils.getJsonString(orderItem));
         amazonOrderItem.setCreateTime(new Timestamp(System.currentTimeMillis()));
         amazonOrderItemRepository.save(amazonOrderItem);
+        updateProduct(market, amazonOrderItem.getAsin(), sellerSku, amazonOrderItem.getSku(), amazonOrderItem.getSize());
     }
 
     private void processInboundShipmentInfo(InboundShipmentInfo info, String market, InboundService inboundService) {
@@ -453,15 +479,9 @@ public class AmazonFetcher {
     private void saveInboundShipmentItem(AmazonInbound inbound, InboundShipmentItem shipment) {
         LOGGER.info("Saving shipment item {}, status {}", shipment.getSellerSKU(), inbound.getStatus());
         AmazonInboundItem item = new AmazonInboundItem(inbound, shipment);
-        String sku = "";
-        String size = "";
-        AmazonSellerSku amazonSellerSku = saveAmazonSellerSku(item.getMarket(), item.getSellerSku());
-        if (amazonSellerSku != null) {
-            sku = amazonSellerSku.getSku();
-            size = amazonSellerSku.getSize();
-        }
-        item.setSku(sku);
-        item.setSize(size);
+        Map<String, String> map = Utils.parseSellerSku(item.getSellerSku());
+        item.setSku(map.get("sku"));
+        item.setSize(map.get("size"));
         amazonInboundItemRepository.save(item);
     }
 
@@ -474,26 +494,15 @@ public class AmazonFetcher {
         }
     }
 
-    private AmazonSellerSku saveAmazonSellerSku(String market, String sellerSku) {
-        try {
-            AmazonSellerSku amazonSellerSku = amazonSellerSkuRepository.findByMarketAndSellerSku(market, sellerSku);
-            if (amazonSellerSku == null) {
-                Map<String, String> map = Utils.parseSellerSku(sellerSku);
-                String sku = map.get("sku");
-                String size = map.get("size");
-                LOGGER.info("{} saving seller sku {}: {} {}", market, sellerSku, sku, size);
-                amazonSellerSku = new AmazonSellerSku();
-                amazonSellerSku.setMarket(market);
-                amazonSellerSku.setSellerSku(sellerSku);
-                amazonSellerSku.setSku(sku);
-                amazonSellerSku.setSize(size);
-                amazonSellerSku.setCreateTime(new Timestamp(System.currentTimeMillis()));
-                amazonSellerSkuRepository.save(amazonSellerSku);
+    private void updateProduct(String market, String asin, String sellerSku, String sku, String size) {
+        if (StringUtils.isNotEmpty(sellerSku) && StringUtils.isNotEmpty(sku)) {
+            AmazonProduct product = amazonProductRepository.findByMarketAndAsin(market, asin);
+            if (product != null && !Objects.equals(product.getSellerSku(), sellerSku)) {
+                product.setSellerSku(sellerSku);
+                product.setSku(sku);
+                product.setSize(size);
+                amazonProductRepository.save(product);
             }
-            return amazonSellerSku;
-        } catch (Throwable t) {
-            LOGGER.error("{} saving seller sku error: {}", market, t.getMessage(), t);
         }
-        return null;
     }
 }

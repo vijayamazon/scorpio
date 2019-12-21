@@ -72,7 +72,7 @@ create table amazon_entry_2
     asin   varchar(50)         not null,
     status tinyint(1) unsigned not null,
     date   date                not null,
-    index (market),
+    unique (market, asin),
     index (asin),
     index (date)
 ) engine = InnoDB
@@ -112,6 +112,30 @@ create table amazon_fba_return
     index (reason),
     index (sku),
     index (size)
+) engine = InnoDB
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci;
+
+drop table if exists amazon_product;
+create table amazon_product
+(
+    id         bigint unsigned primary key auto_increment,
+    market     varchar(10)  not null,
+    parent     varchar(20)  not null,
+    asin       varchar(20)  not null,
+    title      varchar(500),
+    image      varchar(500),
+    color      varchar(50),
+    seller_sku varchar(100),
+    sku        varchar(50),
+    size       varchar(10),
+    unique (market, asin),
+    index (parent),
+    index (asin),
+    index (seller_sku),
+    index (sku),
+    index (size),
+    index (color)
 ) engine = InnoDB
   default charset = utf8mb4
   collate = utf8mb4_unicode_ci;

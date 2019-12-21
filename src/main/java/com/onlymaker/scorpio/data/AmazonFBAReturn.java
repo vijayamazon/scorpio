@@ -2,7 +2,6 @@ package com.onlymaker.scorpio.data;
 
 import javax.persistence.*;
 import java.sql.Date;
-import java.sql.Time;
 import java.sql.Timestamp;
 
 @Entity
