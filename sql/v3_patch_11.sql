@@ -68,10 +68,10 @@ drop table if exists amazon_entry_2;
 create table amazon_entry_2
 (
     id     bigint unsigned primary key auto_increment,
-    market varchar(10)         not null,
-    asin   varchar(50)         not null,
-    status tinyint(1) unsigned not null,
-    date   date                not null,
+    market varchar(10) not null,
+    asin   varchar(50) not null,
+    status tinyint(1)  not null,
+    date   date        not null,
     unique (market, asin),
     index (asin),
     index (date)

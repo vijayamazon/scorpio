@@ -6,6 +6,8 @@ import com.amazonservices.mws.products.MarketplaceWebServiceProductsConfig;
 import com.amazonservices.mws.products.model.*;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 
 public class ProductService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProductService.class);
     private MarketplaceWebServiceProductsClient client;
     private AppInfo appInfo;
     private MarketWebService mws;
@@ -32,7 +35,7 @@ public class ProductService {
      * maximum request quota: 20
      * restore rate: 2/1s
      */
-    public GetMatchingProductForIdResponse getMatchingProduct(String ... asin) {
+    public GetMatchingProductForIdResponse getMatchingProduct(String... asin) {
         GetMatchingProductForIdRequest request = new GetMatchingProductForIdRequest();
         request.setMarketplaceId(mws.getMarketplaceId());
         request.setSellerId(mws.getSellerId());
@@ -58,25 +61,29 @@ public class ProductService {
     }
 
     public Map<String, Map<String, String>> getProductInfo(String parentAsin) {
-        List<String> list = new ArrayList<>();
-        Map<String, Map<String, String>> map = new HashMap<>();
+        List<String> children = new ArrayList<>();
+        Map<String, Map<String, String>> productInfo = new HashMap<>();
         GetMatchingProductForIdResponse response = getMatchingProduct(parentAsin);
         List<GetMatchingProductForIdResult> results = response.getGetMatchingProductForIdResult();
         if (!results.isEmpty()) {
-            List<Product> products = results.get(0).getProducts().getProduct();
-            if (!products.isEmpty()) {
+            ProductList productList = results.get(0).getProducts();
+            if (productList == null || productList.getProduct().isEmpty()) {
+                LOGGER.info("entry %s is invalid, no matching product", parentAsin);
+                return null;
+            } else {
+                List<Product> products = results.get(0).getProducts().getProduct();
                 Product product = products.get(0);
                 String xml = product.getRelationships().toXMLFragment();
                 if (xml.contains("VariationChild")) {
                     Matcher asinMatcher = Utils.MATCHING_PRODUCT_ASIN.matcher(xml);
                     while (asinMatcher.find()) {
-                        list.add(asinMatcher.group("asin"));
+                        children.add(asinMatcher.group("asin"));
                     }
-                    while (!list.isEmpty()) {
+                    while (!children.isEmpty()) {
                         int max = 5;
                         List<String> id = new ArrayList<>();
-                        while (max > 0 && list.size() > 0) {
-                            id.add(list.remove(0));
+                        while (max > 0 && children.size() > 0) {
+                            id.add(children.remove(0));
                             max--;
                         }
                         GetMatchingProductForIdResponse second = getMatchingProduct(id);
@@ -92,13 +99,16 @@ public class ProductService {
                             while (rankMatcher.find()) {
                                 attr.put(rankMatcher.group("name"), rankMatcher.group("rank"));
                             }
-                            map.put(asin, attr);
+                            productInfo.put(asin, attr);
                         });
                     }
+                } else {
+                    LOGGER.info("entry %s is invalid, maybe not a parent asin", parentAsin);
+                    return null;
                 }
             }
         }
-        return map;
+        return productInfo;
     }
 
     private synchronized MarketplaceWebServiceProductsClient getClient() {

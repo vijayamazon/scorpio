@@ -324,29 +324,34 @@ public class AmazonFetcher {
                     String parent = entry.getAsin();
                     LOGGER.info(market + " asin: " + parent);
                     Map<String, Map<String, String>> map = productService.getProductInfo(parent);
-                    map.forEach(((child, info) -> {
-                        LOGGER.info(market + " child: " + child);
-                        AmazonProduct product = amazonProductRepository.findByMarketAndAsin(market, child);
-                        if (product == null) {
-                            product = new AmazonProduct();
-                            product.setMarket(market);
-                            product.setAsin(child);
-                        }
-                        product.setParent(parent);
-                        product.setTitle(info.get("Title"));
-                        product.setImage(info.get("URL"));
-                        product.setColor(info.get("Color"));
-                        String sellerSku = info.get("Model");
-                        if (StringUtils.isNotEmpty(sellerSku)) {
-                            Map<String, String> result = Utils.parseSellerSku(sellerSku);
-                            product.setSellerSku(sellerSku);
-                            product.setSku(result.get("sku"));
-                            product.setSize(result.get("size"));
-                        } else {
-                            product.setSize(info.get("Size"));
-                        }
-                        amazonProductRepository.save(product);
-                    }));
+                    if (map == null) {
+                        entry.setStatus(AmazonEntry.STATUS_INVALID);
+                        amazonEntryRepository.save(entry);
+                    } else {
+                        map.forEach(((child, info) -> {
+                            LOGGER.info(market + " child: " + child);
+                            AmazonProduct product = amazonProductRepository.findByMarketAndAsin(market, child);
+                            if (product == null) {
+                                product = new AmazonProduct();
+                                product.setMarket(market);
+                                product.setAsin(child);
+                            }
+                            product.setParent(parent);
+                            product.setTitle(info.get("Title"));
+                            product.setImage(info.get("URL"));
+                            product.setColor(info.get("Color"));
+                            String sellerSku = info.get("Model");
+                            if (StringUtils.isNotEmpty(sellerSku)) {
+                                Map<String, String> result = Utils.parseSellerSku(sellerSku);
+                                product.setSellerSku(sellerSku);
+                                product.setSku(result.get("sku"));
+                                product.setSize(result.get("size"));
+                            } else {
+                                product.setSize(info.get("Size"));
+                            }
+                            amazonProductRepository.save(product);
+                        }));
+                    }
                 });
             } catch (Throwable t) {
                 LOGGER.error("{} fetch product error: {}", mws.getMarketplace(), t.getMessage(), t);

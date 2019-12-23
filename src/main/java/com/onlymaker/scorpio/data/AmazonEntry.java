@@ -6,6 +6,12 @@ import java.sql.Date;
 @Entity
 @Table(name = "amazon_entry_2")
 public class AmazonEntry {
+    public static final int STATUS_INVALID = -1;
+    public static final int STATUS_WATCHING = 0;
+    public static final int STATUS_RAMP_UP = 1;
+    public static final int STATUS_KEEP = 2;
+    public static final int STATUS_DISCARD = 3;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", unique = true, nullable = false)
