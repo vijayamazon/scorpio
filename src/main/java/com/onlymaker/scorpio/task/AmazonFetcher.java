@@ -346,7 +346,7 @@ public class AmazonFetcher {
                                 product.setSellerSku(sellerSku);
                                 product.setSku(result.get("sku"));
                                 product.setSize(result.get("size"));
-                            } else {
+                            } else if (StringUtils.isEmpty(product.getSize())) {
                                 product.setSize(info.get("Size"));
                             }
                             amazonProductRepository.save(product);
