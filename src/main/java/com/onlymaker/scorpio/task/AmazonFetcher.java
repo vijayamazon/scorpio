@@ -335,20 +335,20 @@ public class AmazonFetcher {
                                 product = new AmazonProduct();
                                 product.setMarket(market);
                                 product.setAsin(child);
+                                String sellerSku = info.get("Model");
+                                if (StringUtils.isNotEmpty(sellerSku)) {
+                                    Map<String, String> result = Utils.parseSellerSku(sellerSku);
+                                    product.setSellerSku(sellerSku);
+                                    product.setSku(result.get("sku"));
+                                    product.setSize(result.get("size"));
+                                } else {
+                                    product.setSize(info.get("Size"));
+                                }
                             }
                             product.setParent(parent);
                             product.setTitle(info.get("Title"));
                             product.setImage(info.get("URL"));
                             product.setColor(info.get("Color"));
-                            String sellerSku = info.get("Model");
-                            if (StringUtils.isNotEmpty(sellerSku)) {
-                                Map<String, String> result = Utils.parseSellerSku(sellerSku);
-                                product.setSellerSku(sellerSku);
-                                product.setSku(result.get("sku"));
-                                product.setSize(result.get("size"));
-                            } else if (StringUtils.isEmpty(product.getSize())) {
-                                product.setSize(info.get("Size"));
-                            }
                             amazonProductRepository.save(product);
                         }));
                     }
