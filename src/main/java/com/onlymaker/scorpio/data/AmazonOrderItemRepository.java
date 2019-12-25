@@ -10,5 +10,5 @@ public interface AmazonOrderItemRepository extends PagingAndSortingRepository<Am
     AmazonOrderItem findByAmazonOrderItemId(String amazonOrderItemId);
     Page<AmazonOrderItem> findByCreateTimeBefore(Timestamp timestamp, Pageable pageable);
     Page<AmazonOrderItem> findBySku(String sku, Pageable pageable);
-
+    AmazonOrderItem findTopByAsinOrderByPurchaseDateDesc(String asin);
 }

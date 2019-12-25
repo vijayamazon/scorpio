@@ -1,9 +1,13 @@
 package com.onlymaker.scorpio.mws;
 
-import com.amazonservices.mws.products.model.GetMatchingProductForIdResponse;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
+import com.onlymaker.scorpio.data.AmazonOrderItem;
+import com.onlymaker.scorpio.data.AmazonOrderItemRepository;
+import com.onlymaker.scorpio.data.AmazonProduct;
+import com.onlymaker.scorpio.data.AmazonProductRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -11,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.regex.Matcher;
+import java.util.Map;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Main.class)
@@ -21,6 +25,10 @@ public class ProductServiceTest {
     AppInfo appInfo;
     @Autowired
     Amazon amazon;
+    @Autowired
+    AmazonProductRepository amazonProductRepository;
+    @Autowired
+    AmazonOrderItemRepository amazonOrderItemRepository;
 
     @Before
     public void setup() {
@@ -29,23 +37,50 @@ public class ProductServiceTest {
 
     @Test
     public void getProduct() {
-        GetMatchingProductForIdResponse response = productService.getMatchingProduct("B07L2WJXR5", "B07KPRM5Z4");
-        response.getGetMatchingProductForIdResult().forEach(r -> {
-            r.getProducts().getProduct().forEach(product -> {
-                System.out.println("==========" + product.getIdentifiers().getMarketplaceASIN().getASIN() + "==========");
-                Matcher matcher = Utils.MATCHING_PRODUCT_ASIN.matcher(product.getRelationships().toXMLFragment());
-                while (matcher.find()) {
-                    System.out.println("ASIN: " + matcher.group("asin"));
+        String market = productService.getMws().getMarketplace();
+        String parent = "B07QWWBXRQ";
+        System.out.println(market + " asin: " + parent);
+        productService.getProductInfo(parent).forEach(((child, info) -> {
+            System.out.println(market + " child: " + child);
+            AmazonProduct product = amazonProductRepository.findByMarketAndAsin(market, child);
+            if (product == null) {
+                product = new AmazonProduct();
+                product.setMarket(market);
+                product.setAsin(child);
+                String sellerSku = info.get("Model");
+                if (StringUtils.isNotEmpty(sellerSku)) {
+                    Map<String, String> result = Utils.parseSellerSku(sellerSku);
+                    product.setSellerSku(sellerSku);
+                    product.setSku(result.get("sku"));
+                    product.setSize(result.get("size"));
+                } else {
+                    product.setSize(info.get("Size"));
                 }
-                Matcher attrMatcher = Utils.MATCHING_PRODUCT_ATTR.matcher(product.getAttributeSets().toXMLFragment());
-                while (attrMatcher.find()) {
-                    System.out.println(String.format("%s: %s", attrMatcher.group("name"), attrMatcher.group("value")));
+            }
+            product.setParent(parent);
+            product.setTitle(info.get("Title"));
+            product.setImage(info.get("URL"));
+            product.setColor(info.get("Color"));
+            amazonProductRepository.save(product);
+        }));
+    }
+
+    @Test
+    public void setSku() {
+        amazonProductRepository.findBySkuOrSkuIsNull("").forEach(product -> {
+            AmazonOrderItem item = amazonOrderItemRepository.findTopByAsinOrderByPurchaseDateDesc(product.getAsin());
+            if (item != null) {
+                String sellerSku = item.getSellerSku();
+                String sku = item.getSku();
+                String size = item.getSize();
+                if (StringUtils.isNotEmpty(sku)) {
+                    System.out.println(String.format("%s set %s, %s, %s", item.getAsin(), sellerSku, sku, size));
+                    product.setSellerSku(sellerSku);
+                    product.setSku(sku);
+                    product.setSize(size);
+                    amazonProductRepository.save(product);
                 }
-                Matcher rankMatcher = Utils.MATCHING_PRODUCT_RANK.matcher(product.getSalesRankings().toXMLFragment());
-                while (rankMatcher.find()) {
-                    System.out.println(String.format("%s: %s", rankMatcher.group("name"), rankMatcher.group("rank")));
-                }
-            });
+            }
         });
     }
 }
