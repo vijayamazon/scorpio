@@ -1,7 +1,6 @@
 package com.onlymaker.scorpio.mws;
 
 import com.amazonservices.mws.products.model.GetMatchingProductForIdResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.onlymaker.scorpio.Main;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
@@ -29,7 +28,7 @@ public class ProductServiceTest {
     }
 
     @Test
-    public void getProduct() throws JsonProcessingException {
+    public void getProduct() {
         GetMatchingProductForIdResponse response = productService.getMatchingProduct("B07L2WJXR5", "B07KPRM5Z4");
         response.getGetMatchingProductForIdResult().forEach(r -> {
             r.getProducts().getProduct().forEach(product -> {

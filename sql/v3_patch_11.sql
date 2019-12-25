@@ -79,8 +79,10 @@ create table amazon_entry_2
   default charset = utf8mb4
   collate = utf8mb4_unicode_ci;
 
-alter table amazon_inventory add column data text;
-alter table amazon_inventory add index (market);
+alter table amazon_inventory
+    add column data text;
+alter table amazon_inventory
+    add index (market);
 
 drop table if exists amazon_fba_return;
 create table amazon_fba_return
@@ -120,9 +122,9 @@ drop table if exists amazon_product;
 create table amazon_product
 (
     id         bigint unsigned primary key auto_increment,
-    market     varchar(10)  not null,
-    parent     varchar(20)  not null,
-    asin       varchar(20)  not null,
+    market     varchar(10) not null,
+    parent     varchar(20) not null,
+    asin       varchar(20) not null,
     title      varchar(500),
     image      varchar(500),
     color      varchar(50),
@@ -166,6 +168,32 @@ create table amazon_bz_child_report
     index (parent),
     index (date),
     index (asin)
+) engine = InnoDB
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci;
+
+drop table if exists amazon_age_report;
+create table amazon_age_report
+(
+    id            bigint unsigned primary key auto_increment,
+    market        varchar(10)   not null,
+    date          date          not null,
+    asin          varchar(20)   not null,
+    fn_sku        varchar(20)   not null,
+    seller_sku    varchar(100)  not null,
+    quantity      int unsigned,
+    age_90        int unsigned,
+    age_180       int unsigned,
+    age_270       int unsigned,
+    age_365       int unsigned,
+    age_year_plus int unsigned,
+    currency      char(10),
+    sku           varchar(50),
+    size          varchar(10),
+    unique (market, asin),
+    index (asin),
+    index (seller_sku),
+    index (sku)
 ) engine = InnoDB
   default charset = utf8mb4
   collate = utf8mb4_unicode_ci;

@@ -12,6 +12,7 @@ import java.util.*;
 
 public class ReportService {
     public static final Map<String, String> REPORT_TYPE = new HashMap<String, String>() {{
+        put("age", "_GET_FBA_INVENTORY_AGED_DATA_");
         put("fba_return", "_GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA_");
         put("inventory", "_GET_FBA_MYI_UNSUPPRESSED_INVENTORY_DATA_");
         put("receipt", "_GET_FBA_FULFILLMENT_INVENTORY_RECEIPTS_DATA_");

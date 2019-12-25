@@ -54,18 +54,22 @@ public class AmazonFetcher {
     AmazonEntryRepository amazonEntryRepository;
     @Autowired
     AmazonProductRepository amazonProductRepository;
+    @Autowired
+    AmazonAgeRepository amazonAgeRepository;
 
     @Scheduled(cron = "${fetcher.mws}")
     public void run() {
         LOGGER.info("run fetcher ...");
         fetchInventoryReport();
         fetchFbaReturnReport();
+        fetchAgeReport();
         fetchReceiptReport();
         fetchOrder();
         fetchInbound();
         requestReport(ReportService.REPORT_TYPE.get("inventory"));
         requestReport(ReportService.REPORT_TYPE.get("receipt"));
         requestReport(ReportService.REPORT_TYPE.get("fba_return"));
+        requestReport(ReportService.REPORT_TYPE.get("age"));
         fetchProduct();
     }
 
@@ -244,6 +248,65 @@ public class AmazonFetcher {
                     }
                 } catch (Throwable t) {
                     LOGGER.error("{} fetch fba return report error: {}", mws.getMarketplace(), t.getMessage(), t);
+                }
+            }
+        }
+    }
+
+    private void fetchAgeReport() {
+        List<MarketWebService> list = amazon.getList();
+        for (MarketWebService mws : list) {
+            ReportService reportService = new ReportService(appInfo, mws);
+            String id = getLatestReportId(mws, ReportService.REPORT_TYPE.get("age"));
+            if (StringUtils.isNotEmpty(id)) {
+                try {
+                    SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
+                    Map<String, Integer> fields = new HashMap<>();
+                    File report = new File("/tmp/age_" + mws.getMarketplace());
+                    List<String> lines = fetchReport(reportService, id, report);
+                    for (String line : lines) {
+                        LOGGER.debug("report line: {}", line);
+                        if (line.endsWith(",")) {
+                            line += "\"\"";
+                        }
+                        String[] elements = line.substring(1, line.length() - 1).split("\",\"", -1);
+                        //"snapshot-date","sku","fnsku","asin","product-name","condition","avaliable-quantity(sellable)","qty-with-removals-in-progress","inv-age-0-to-90-days","inv-age-91-to-180-days","inv-age-181-to-270-days","inv-age-271-to-365-days","inv-age-365-plus-days","currency","qty-to-be-charged-ltsf-6-mo","projected-ltsf-6-mo","qty-to-be-charged-ltsf-12-mo","projected-ltsf-12-mo","units-shipped-last-7-days","units-shipped-last-30-days","units-shipped-last-60-days","units-shipped-last-90-days","alert","your-price","sales_price","lowest_price_new","lowest_price_used","Recommended action","Healthy Inventory Level","Recommended sales price","Recommended sale duration (days)","Recommended Removal Quantity","Estimated cost savings of removal","sell-through","cubic-feet","storage-type"
+                        if (fields.isEmpty()) {
+                            for (int i = 0; i < elements.length; i++) {
+                                fields.put(elements[i], i);
+                            }
+                        } else {
+                            String market = mws.getMarketplace();
+                            String snapshotDate = elements[fields.get("snapshot-date")];
+                            Date date = new Date(f.parse(snapshotDate).getTime());
+                            String asin = elements[fields.get("asin")];
+                            String sellerSku = elements[fields.get("sku")];
+                            Map<String, String> map = Utils.parseSellerSku(sellerSku);
+                            AmazonAge amazonAge = amazonAgeRepository.findByMarketAndAsin(market, asin);
+                            if (amazonAge == null) {
+                                amazonAge = new AmazonAge();
+                                amazonAge.setMarket(market);
+                                amazonAge.setAsin(asin);
+                            }
+                            LOGGER.info("{} saving age: {}", market, sellerSku);
+                            amazonAge.setDate(date);
+                            amazonAge.setFnSku(elements[fields.get("fnsku")]);
+                            amazonAge.setSellerSku(sellerSku);
+                            amazonAge.setSku(map.get("sku"));
+                            amazonAge.setSize(map.get("size"));
+                            amazonAge.setCurrency(elements[fields.get("currency")]);
+                            amazonAge.setQuantity(Integer.parseInt(elements[fields.get("avaliable-quantity(sellable)")]));
+                            amazonAge.setAge90(Integer.parseInt(elements[fields.get("inv-age-0-to-90-days")]));
+                            amazonAge.setAge180(Integer.parseInt(elements[fields.get("inv-age-91-to-180-days")]));
+                            amazonAge.setAge270(Integer.parseInt(elements[fields.get("inv-age-181-to-270-days")]));
+                            amazonAge.setAge365(Integer.parseInt(elements[fields.get("inv-age-271-to-365-days")]));
+                            amazonAge.setAgeYearPlus(Integer.parseInt(elements[fields.get("inv-age-365-plus-days")]));
+                            amazonAgeRepository.save(amazonAge);
+                            updateProduct(market, asin, sellerSku, amazonAge.getSku(), amazonAge.getSize());
+                        }
+                    }
+                } catch (Throwable t) {
+                    LOGGER.error("{} fetch age report error: {}", mws.getMarketplace(), t.getMessage(), t);
                 }
             }
         }

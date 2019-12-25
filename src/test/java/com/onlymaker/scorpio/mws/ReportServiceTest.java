@@ -152,7 +152,7 @@ public class ReportServiceTest {
     }
 
     @Test
-    public void fbaReturn() throws MarketplaceWebServiceException {
+    public void fbaReturn() {
         String line = "\"2019-12-18T07:07:33+00:00\",\"114-1560669-0185045\",\"ARUS-P90106A-US12-FBA\",\"B07PYVVL1W\",\"X002206XUN\",\"Onlymaker Women's Sexy Ankle Strap Open Toe Platform Stiletto Sandals Single Band High Heel Party Dress Shoes Black US12\",\"1\",\"SDF9\",\"SELLABLE\",\"APPAREL_TOO_SMALL\",\"Unit returned to inventory\",\"LPNRR868744056\",";
         if (line.endsWith(",")) {
             line += "\"\"";
