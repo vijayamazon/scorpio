@@ -4,13 +4,22 @@ import com.amazonaws.mws.MarketplaceWebServiceClient;
 import com.amazonaws.mws.MarketplaceWebServiceConfig;
 import com.amazonaws.mws.MarketplaceWebServiceException;
 import com.amazonaws.mws.model.*;
+import com.amazonservices.mws.products.model.RelationshipList;
+import com.ibm.icu.text.CharsetDetector;
+import com.ibm.icu.text.CharsetMatch;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.OutputStream;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.*;
 
 public class ReportService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(RelationshipList.class);
+
     public static final Map<String, String> REPORT_TYPE = new HashMap<String, String>() {{
         put("age", "_GET_FBA_INVENTORY_AGED_DATA_");
         put("fba_return", "_GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA_");
@@ -110,6 +119,40 @@ public class ReportService {
 
     public GetReportResponse getReport(GetReportRequest request) throws MarketplaceWebServiceException {
         return getClient().getReport(request);
+    }
+
+    public List<String> getReportContent(String reportId, File report) throws Exception {
+        List<String> lines;
+        GetReportRequest request = prepareGetReport(reportId, new FileOutputStream(report));
+        getReport(request);
+        request.getReportOutputStream().close();
+        InputStream inputStream = new BufferedInputStream(new FileInputStream(report));
+        CharsetDetector detector = new CharsetDetector();
+        detector.setText(inputStream);
+        CharsetMatch encoding = detector.detect();
+        inputStream.close();
+        if (encoding != null) {
+            LOGGER.debug("report detect encoding: {}", encoding.getName());
+            lines = Files.readAllLines(report.toPath(), Charset.forName(encoding.getName()));
+        } else {
+            LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
+            lines = Files.readAllLines(report.toPath());
+        }
+        return lines;
+    }
+
+    public String[] splitReportLine(String line) {
+        LOGGER.debug("report line: {}", line);
+        String separator = "\t";
+        if (line.startsWith("\"")) {
+            separator = "\",\"";
+            if (line.endsWith(",")) {
+                line += "\"\"";
+            }
+            return line.substring(1, line.length() - 1).split(separator, -1);
+        } else {
+            return line.split(separator, -1);
+        }
     }
 
     private MarketplaceWebServiceClient getClient() {

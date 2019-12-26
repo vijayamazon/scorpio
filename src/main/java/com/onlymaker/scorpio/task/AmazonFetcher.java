@@ -1,10 +1,11 @@
 package com.onlymaker.scorpio.task;
 
-import com.amazonaws.mws.model.*;
+import com.amazonaws.mws.model.GetReportListResponse;
+import com.amazonaws.mws.model.ReportInfo;
+import com.amazonaws.mws.model.ReportRequestInfo;
+import com.amazonaws.mws.model.RequestReportResponse;
 import com.amazonservices.mws.FulfillmentInboundShipment._2010_10_01.model.*;
 import com.amazonservices.mws.orders._2013_09_01.model.*;
-import com.ibm.icu.text.CharsetDetector;
-import com.ibm.icu.text.CharsetMatch;
 import com.onlymaker.scorpio.config.Amazon;
 import com.onlymaker.scorpio.config.AppInfo;
 import com.onlymaker.scorpio.config.MarketWebService;
@@ -18,9 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
+import java.io.File;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -147,11 +146,10 @@ public class AmazonFetcher {
                 try {
                     Map<String, Integer> fields = new HashMap<>();
                     File report = new File("/tmp/inventory_" + mws.getMarketplace());
-                    List<String> lines = fetchReport(reportService, id, report);
+                    List<String> lines = reportService.getReportContent(id, report);
                     for (String line : lines) {
-                        LOGGER.debug("report line: {}", line);
-                        String[] elements = line.split("\t");
                         //sku	fnsku	asin	product-name	condition	your-price	mfn-listing-exists	mfn-fulfillable-quantity	afn-listing-exists	afn-warehouse-quantity	afn-fulfillable-quantity	afn-unsellable-quantity	afn-reserved-quantity	afn-total-quantity	per-unit-volume	afn-inbound-working-quantity	afn-inbound-shipped-quantity	afn-inbound-receiving-quantity
+                        String[] elements = reportService.splitReportLine(line);
                         if (line.startsWith("sku")) {
                             for (int i = 0; i < elements.length; i++) {
                                 fields.put(elements[i], i);
@@ -200,14 +198,10 @@ public class AmazonFetcher {
                     SimpleDateFormat f2 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
                     Map<String, Integer> fields = new HashMap<>();
                     File report = new File("/tmp/fba_return_" + mws.getMarketplace());
-                    List<String> lines = fetchReport(reportService, id, report);
+                    List<String> lines = reportService.getReportContent(id, report);
                     for (String line : lines) {
-                        LOGGER.debug("report line: {}", line);
-                        if (line.endsWith(",")) {
-                            line += "\"\"";
-                        }
-                        String[] elements = line.substring(1, line.length() - 1).split("\",\"", -1);
                         //"return-date","order-id","sku","asin","fnsku","product-name","quantity","fulfillment-center-id","detailed-disposition","reason","status","license-plate-number","customer-comments"
+                        String[] elements = reportService.splitReportLine(line);
                         if (fields.isEmpty()) {
                             for (int i = 0; i < elements.length; i++) {
                                 fields.put(elements[i], i);
@@ -263,14 +257,10 @@ public class AmazonFetcher {
                     SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
                     Map<String, Integer> fields = new HashMap<>();
                     File report = new File("/tmp/age_" + mws.getMarketplace());
-                    List<String> lines = fetchReport(reportService, id, report);
+                    List<String> lines = reportService.getReportContent(id, report);
                     for (String line : lines) {
-                        LOGGER.debug("report line: {}", line);
-                        if (line.endsWith(",")) {
-                            line += "\"\"";
-                        }
-                        String[] elements = line.substring(1, line.length() - 1).split("\",\"", -1);
                         //"snapshot-date","sku","fnsku","asin","product-name","condition","avaliable-quantity(sellable)","qty-with-removals-in-progress","inv-age-0-to-90-days","inv-age-91-to-180-days","inv-age-181-to-270-days","inv-age-271-to-365-days","inv-age-365-plus-days","currency","qty-to-be-charged-ltsf-6-mo","projected-ltsf-6-mo","qty-to-be-charged-ltsf-12-mo","projected-ltsf-12-mo","units-shipped-last-7-days","units-shipped-last-30-days","units-shipped-last-60-days","units-shipped-last-90-days","alert","your-price","sales_price","lowest_price_new","lowest_price_used","Recommended action","Healthy Inventory Level","Recommended sales price","Recommended sale duration (days)","Recommended Removal Quantity","Estimated cost savings of removal","sell-through","cubic-feet","storage-type"
+                        String[] elements = reportService.splitReportLine(line);
                         if (fields.isEmpty()) {
                             for (int i = 0; i < elements.length; i++) {
                                 fields.put(elements[i], i);
@@ -322,11 +312,10 @@ public class AmazonFetcher {
                     SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
                     Map<String, Integer> fields = new HashMap<>();
                     File report = new File("/tmp/receipt_" + mws.getMarketplace());
-                    List<String> lines = fetchReport(reportService, id, report);
+                    List<String> lines = reportService.getReportContent(id, report);
                     for (String line : lines) {
-                        LOGGER.debug("report line: {}", line);
-                        String[] elements = line.split("\t");
                         //received-date	fnsku	sku	product-name	quantity	fba-shipment-id	fulfillment-center-id
+                        String[] elements = reportService.splitReportLine(line);
                         if (line.startsWith("received-date")) {
                             for (int i = 0; i < elements.length; i++) {
                                 fields.put(elements[i], i);
@@ -354,27 +343,6 @@ public class AmazonFetcher {
                 }
             }
         }
-    }
-
-    private List<String> fetchReport(ReportService reportService, String reportId, File report) throws Exception {
-        List<String> lines;
-        GetReportRequest request = reportService.prepareGetReport(reportId, new FileOutputStream(report));
-        reportService.getReport(request);
-        request.getReportOutputStream().close();
-        //check encoding
-        InputStream inputStream = new BufferedInputStream(new FileInputStream(report));
-        CharsetDetector detector = new CharsetDetector();
-        detector.setText(inputStream);
-        CharsetMatch encoding = detector.detect();
-        inputStream.close();
-        if (encoding != null) {
-            LOGGER.debug("report detect encoding: {}", encoding.getName());
-            lines = Files.readAllLines(report.toPath(), Charset.forName(encoding.getName()));
-        } else {
-            LOGGER.debug("report default encoding: {}", Charset.defaultCharset());
-            lines = Files.readAllLines(report.toPath());
-        }
-        return lines;
     }
 
     private void fetchProduct() {
