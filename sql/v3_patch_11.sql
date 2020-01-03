@@ -197,3 +197,15 @@ create table amazon_age_report
 ) engine = InnoDB
   default charset = utf8mb4
   collate = utf8mb4_unicode_ci;
+
+drop table if exists product_tag;
+create table product_tag
+(
+    id  bigint unsigned primary key auto_increment,
+    sku varchar(50),
+    tag varchar(50),
+    index (sku),
+    index (tag)
+) engine = InnoDB
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci;
