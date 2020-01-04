@@ -59,6 +59,7 @@ public class AmazonFetcher {
     @Scheduled(cron = "${fetcher.mws}")
     public void run() {
         LOGGER.info("run fetcher ...");
+        fetchProduct();
         fetchInventoryReport();
         fetchFbaReturnReport();
         fetchAgeReport();
@@ -69,7 +70,6 @@ public class AmazonFetcher {
         requestReport(ReportService.REPORT_TYPE.get("receipt"));
         requestReport(ReportService.REPORT_TYPE.get("fba_return"));
         requestReport(ReportService.REPORT_TYPE.get("age"));
-        fetchProduct();
     }
 
     private void fetchOrder() {
