@@ -209,3 +209,40 @@ create table product_tag
 ) engine = InnoDB
   default charset = utf8mb4
   collate = utf8mb4_unicode_ci;
+
+drop table if exists amazon_ads_keyword;
+create table amazon_ads_keyword
+(
+    id                             bigint unsigned primary key auto_increment,
+    market                         varchar(10) not null,
+    date                           date,
+    portfolio_name                 varchar(100),
+    currency                       varchar(10),
+    campaign_name                  varchar(100),
+    ad_group_name                  varchar(100),
+    target                         varchar(100),
+    match_type                     varchar(50),
+    search                         varchar(100),
+    impression                     int unsigned,
+    click                          int unsigned,
+    ctr                            float unsigned,
+    cpc                            int unsigned,
+    spend                          int unsigned,
+    spend_raw                      varchar(100),
+    7_day_total_sales              int unsigned,
+    7_day_total_sales_raw          varchar(100),
+    acos                           float unsigned,
+    roas                           float unsigned,
+    7_day_total_orders             int unsigned,
+    7_day_total_units              int unsigned,
+    7_day_conversion_rate          float unsigned,
+    7_day_advertised_sku_units     int unsigned,
+    7_day_other_sku_units          int unsigned,
+    7_day_advertised_sku_sales     int unsigned,
+    7_day_advertised_sku_sales_raw varchar(100),
+    7_day_other_sku_sales          int unsigned,
+    7_day_other_sku_sales_raw      varchar(100),
+    unique (date, portfolio_name, campaign_name, ad_group_name, target, match_type, search)
+) engine = InnoDB
+  default charset = utf8mb4
+  collate = utf8mb4_unicode_ci;
